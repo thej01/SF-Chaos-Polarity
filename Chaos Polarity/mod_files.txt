@@ -8,7 +8,6 @@ add ranks.hmm
 add attack_changes.hmm 
 add chaos_drives.hmm 
 add unlocks.hmm
-add CombatDXFunctions.dll
 add /properties/global.ini
 add /properties/Easy/drives.ini
 add /properties/Easy/general.ini
