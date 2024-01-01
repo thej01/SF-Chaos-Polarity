@@ -1,0 +1,288 @@
+Code "Move Staleness" by "thej01" in "thej01's codes/Gameplay" does "Spamming the same move will decrease the damage and also decrease your Phantom Rush/Combo gauge."
+//
+    #include "Reflection" noemit
+    #include "BlackboardStatus" noemit
+
+    #lib "Drives"
+    #lib "INIHelpers"
+    #lib "SonicParameters"
+    #lib "Sonic"
+    #lib "Time"
+    #lib "Reflection"
+    #lib "GlobalVariables"
+    #lib "BlackboardBattle"
+    #lib "BlackboardStatus"
+    #lib "GameObject"
+
+    static bool IsInitialised = false;
+    static bool IsMoveStalennessInitialised = false;
+
+    static int MoveAmount = 15;
+
+    static int[] MoveStalenessToState = new int[MoveAmount + 1];
+
+    static bool[] JustStaled = new bool[MoveAmount + 1];
+    static bool[] JustUnStaled = new bool[MoveAmount + 1];
+    static bool[] IncrementsDuringState = new bool[MoveAmount + 1];
+
+    static float[] MoveStaleness = new float[MoveAmount + 1];
+    static float[] MoveStalenessTimer = new float[MoveAmount + 1];
+    static float[] MovePointsIncrease = new float[MoveAmount + 1];
+
+    var SonicParametersInfo = Reflection.GetDataInfo<SonicParameters.Root>("player_common");
+
+    static float DamageMin = 1f;
+    static float DamageMax = 3f;
+    static float SSDamageMultiplier = 3.5f;
+
+    static float ExtraDamageComboCountDivider = 65;
+    static float ExtraDamageComboCountMax = 75;
+
+    static float PhantomRushDamageMultiplier = 1.7f;
+
+    static float StalenessMultiplier = 1.0f;
+    static float MaxStaleness = 3.0f;
+
+    static float UnStalenessMultiplier = 1.0f;
+    static float UnStalenessTimerMultiplier = 1.0f;
+
+    static float PhantomRushDecrease = 8.0f;
+    static float PhantomRushIncrease = 10.0f;
+
+    static float RequiredForFresh = 2.5f;
+
+    static float CapStaleness(float amount = 1.0f)
+    {
+        if (amount > MaxStaleness)
+            return 999.0f;
+
+        if (amount <= 1.0f)
+            return 1f;
+        return amount;
+    }
+
+    static void Init_Difficulty()
+    {
+        string LoadResult = "";
+        LoadResult = INIHelpers.LoadINI(GlobalVariables.ModName, @"\\properties\\" + GlobalVariables.CurrentDifficulty + "\\general.ini");
+
+        if (LoadResult == "ModNotFound" || LoadResult == "ININotFound")
+            return;
+
+        DamageMin = INIHelpers.Parse.Float("Stats", "DamageMin");
+        DamageMax = INIHelpers.Parse.Float("Stats", "DamageMax");
+        SSDamageMultiplier = INIHelpers.Parse.Float("Stats", "SSDamageMultiplier");
+
+        ExtraDamageComboCountDivider = INIHelpers.Parse.Float("Stats", "ExtraDamageComboCountDivider");
+        ExtraDamageComboCountMax = INIHelpers.Parse.Float("Stats", "ExtraDamageComboCountMax");
+
+        PhantomRushDamageMultiplier = INIHelpers.Parse.Float("PhantomRush", "DamageMultiplier");
+    }
+//
+{
+    if (Player.GetPlayerType() != Player.PlayerType.Sonic)
+        return;
+
+    if (!IsInitialised || GlobalVariables.UpdateForever)
+    {
+        string LoadResult = "";
+        LoadResult = INIHelpers.LoadINI(GlobalVariables.ModName, @"\\properties\\global.ini");
+        IsInitialised = true;
+
+        if (LoadResult == "ModNotFound" || LoadResult == "ININotFound")
+            return;
+
+        for (int curMove = 0; curMove < (MoveAmount + 1); ++curMove)
+        {
+            string moveNum = curMove.ToString();
+            MoveStalenessToState[curMove] = INIHelpers.Parse.Int("MoveStaleness", "Move" + moveNum);
+            MovePointsIncrease[curMove] = INIHelpers.Parse.Float("MoveStaleness", "PointsIncrease" + moveNum);
+            IncrementsDuringState[curMove] = INIHelpers.Parse.Bool("MoveStaleness", "IncrementsDuring" + moveNum);
+            if (!IsMoveStalennessInitialised)
+            {
+                JustStaled[curMove] = false;
+                JustUnStaled[curMove] = false;
+                MoveStaleness[curMove] = 0f;
+            }
+        }
+
+        IsMoveStalennessInitialised = true;
+
+        StalenessMultiplier = INIHelpers.Parse.Float("MoveStaleness", "StalenessMultiplier");
+        MaxStaleness = INIHelpers.Parse.Float("MoveStaleness", "MaxStaleness");
+
+        UnStalenessMultiplier = INIHelpers.Parse.Float("MoveStaleness", "UnStalenessMultiplier");
+        UnStalenessTimerMultiplier = INIHelpers.Parse.Float("MoveStaleness", "UnStalenessTimerMultiplier");
+
+        PhantomRushDecrease = INIHelpers.Parse.Float("MoveStaleness", "PhantomRushDecrease");
+        PhantomRushIncrease = INIHelpers.Parse.Float("MoveStaleness", "PhantomRushIncrease");
+
+        RequiredForFresh = INIHelpers.Parse.Float("MoveStaleness", "RequiredForFresh");
+
+        Init_Difficulty();
+    }
+
+    if (GlobalVariables.DifficultyJustChanged)
+        Init_Difficulty();
+
+    bool isSuper = BlackboardStatus.IsSuper();
+
+    var pBlackboardBattle = BlackboardBattle.Get();
+
+    if (pBlackboardBattle == null)
+        return;
+
+    bool damageSet = false;
+    bool isComboActive = pBlackboardBattle->PhantomRushAmount > 0.0f;
+
+    float DeltaTime = Time.GetDeltaTime();
+    float damageMultiplierToUse = 1;
+    float comboCount = pBlackboardBattle->ComboCount;
+    float extraDamageFromCombo = 1 * (comboCount / ExtraDamageComboCountDivider);
+
+    if (comboCount > ExtraDamageComboCountMax)
+        comboCount = ExtraDamageComboCountMax;
+
+    if (GlobalVariables.IsPhantomRushActive)
+        damageMultiplierToUse = PhantomRushDamageMultiplier;
+
+    Drives.Drive curDriveStruct = Drives.Get_Drive(Drives.CurDrive);
+
+    damageMultiplierToUse += (curDriveStruct.attackMultiplier - 1);
+
+    // yeah you might be on your own for this one...
+
+    for (int curMove = 0; curMove < (MoveAmount + 1); ++curMove)
+    {
+        bool isInDifferentMove = false;
+        if (!JustUnStaled[curMove])
+        {
+            for (int otherMoves = 0; otherMoves < (MoveAmount + 1); ++otherMoves)
+            {
+                if (curMove != otherMoves)
+                {
+                    if (Player.State.GetCurrentStateID<int>() == MoveStalenessToState[otherMoves])
+                    {
+                        isInDifferentMove = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (Player.State.GetCurrentStateID<int>() == MoveStalenessToState[curMove])
+        {
+            if (!IncrementsDuringState[curMove])
+            {
+                if (!JustStaled[curMove])
+                {
+                    MoveStalenessTimer[curMove] = 0.0f;
+                    MoveStaleness[curMove] += (1 * StalenessMultiplier);
+                    JustStaled[curMove] = true;
+
+                    if (MoveStaleness[curMove] < RequiredForFresh)
+                    {
+                        if (isComboActive)
+                        {
+                            float Divider = (MoveStaleness[curMove] - 1);
+                            if (Divider < 1)
+                                Divider = 1;
+
+                            GlobalVariables.PhantomRushIncreaseQueue += PhantomRushIncrease / Divider;
+                            GlobalVariables.RankPointsIncrease += MovePointsIncrease[curMove] / Divider;
+                        }
+                    }
+                    else
+                    {
+                        if (isComboActive)
+                            GlobalVariables.PhantomRushDecreaseQueue += PhantomRushDecrease * (MoveStaleness[curMove] - 1);
+                    }
+                }
+
+            }
+            else
+            {
+                MoveStalenessTimer[curMove] = 0.0f;
+                MoveStaleness[curMove] += (DeltaTime * StalenessMultiplier);
+
+                if (MoveStaleness[curMove] < RequiredForFresh)
+                {
+                    if (isComboActive)
+                    {
+                        float Divider = (MoveStaleness[curMove] - 1);
+                        if (Divider < 1)
+                            Divider = 1;
+                            
+                        GlobalVariables.PhantomRushIncreaseQueue += (PhantomRushIncrease / Divider) * DeltaTime;
+                        GlobalVariables.RankPointsIncrease += (MovePointsIncrease[curMove] / Divider) * DeltaTime;
+                    }
+                }
+                else
+                {
+                    if (isComboActive)
+                        GlobalVariables.PhantomRushDecreaseQueue += (PhantomRushDecrease * (MoveStaleness[curMove] - 1)) * DeltaTime;
+                }
+            }
+
+            if (MoveStaleness[curMove] > (MaxStaleness + 1))
+                MoveStaleness[curMove] = MaxStaleness + 1;
+        }
+        else if (isInDifferentMove)
+        {
+            if (!JustUnStaled[curMove])
+            {
+                MoveStalenessTimer[curMove] = 0.0f;
+                JustUnStaled[curMove] = true;
+                MoveStaleness[curMove] -= 0.5f * UnStalenessMultiplier;
+            }
+        }
+        else
+        {
+            MoveStalenessTimer[curMove] += (DeltaTime * UnStalenessTimerMultiplier);
+            if (MoveStalenessTimer[curMove] >= 10.0f)
+            {
+                MoveStalenessTimer[curMove] = 0.0f;
+                MoveStaleness[curMove] -= 1f * UnStalenessMultiplier;
+            }
+            JustStaled[curMove] = false;
+            JustUnStaled[curMove] = false;
+        }
+
+        if (MoveStaleness[curMove] <= 0f)
+            MoveStaleness[curMove] = 0f;
+
+        if (SonicParametersInfo.pData == null)
+            return;
+
+        // modify damage
+        if (Player.State.GetCurrentStateID<int>() == MoveStalenessToState[curMove])
+        {
+            float resultDamageMin = DamageMin;
+            float resultDamageMax = DamageMax;
+            if (isSuper)
+            {
+                resultDamageMin *= SSDamageMultiplier;
+                resultDamageMax *= SSDamageMultiplier;
+            }
+            resultDamageMin += extraDamageFromCombo;
+            resultDamageMax += extraDamageFromCombo;
+
+            resultDamageMin = resultDamageMin / CapStaleness(MoveStaleness[curMove]);
+            resultDamageMax = resultDamageMax / CapStaleness(MoveStaleness[curMove]);
+
+            RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.common.offensive.pointMin, (byte)(resultDamageMin * damageMultiplierToUse));
+            RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.common.offensive.pointMax, (byte)(resultDamageMax * damageMultiplierToUse));
+
+            damageSet = true;
+        }
+    }
+
+    if (SonicParametersInfo.pData == null)
+        return;
+
+    if (!damageSet)
+    {
+        RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.common.offensive.pointMin, (byte)(DamageMin * damageMultiplierToUse));
+        RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.common.offensive.pointMax, (byte)(DamageMax * damageMultiplierToUse));
+    }
+}

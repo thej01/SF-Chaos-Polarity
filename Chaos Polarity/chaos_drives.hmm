@@ -1,0 +1,223 @@
+
+
+
+Code "Chaos Drives" by "thej01"
+//
+    #include "BlackboardStatus" noemit
+    #include "Reflection" noemit
+
+    #lib "Drives"
+    #lib "Unlocks"
+    #lib "GlobalVariables"
+    #lib "INIHelpers"
+    #lib "Player"
+    #lib "Sonic"
+    #lib "SonicParameters"
+    #lib "Time"
+    #lib "BlackboardStatus"
+    #lib "BlackboardBattle"
+    #lib "Reflection"
+    #lib "GameObject"
+
+    static bool IsInitialised = false;
+
+    static float EffectPlayTimer = 0;
+    static float RingDrainTimer = 0;
+    static float RingGainTimer = 0;
+
+    static float DefenseMin = 10;
+    static float DefenseMax = 10;
+
+    static Drives.Drive Init_Drive(string Name = "")
+    {
+        string LoadResult = "";
+        // here we pray to god that we find the ini file succesfully or we are fucked
+
+        LoadResult = INIHelpers.LoadINI(GlobalVariables.ModName, @"\\properties\\" + GlobalVariables.CurrentDifficulty + "\\drives.ini");
+
+        Drives.Drive tmp;
+
+        tmp.passiveCemt = INIHelpers.Parse.String(Name, "passiveCemt");
+        tmp.isEnabled = INIHelpers.Parse.Bool(Name, "isEnabled");
+        tmp.ringDrainSec = INIHelpers.Parse.Float(Name, "ringDrainSec");
+        tmp.attackMultiplier = INIHelpers.Parse.Float(Name, "attackMultiplier");
+        tmp.defenseMultiplier = INIHelpers.Parse.Float(Name, "defenseMultiplier");
+        tmp.ringGainSec = INIHelpers.Parse.Float(Name, "ringGainSec");
+        tmp.RankPointGain = INIHelpers.Parse.Float(Name, "RankPointGain");
+        tmp.PhantomRushGain = INIHelpers.Parse.Float(Name, "PhantomRushGain");
+        tmp.HitstopInSeconds = INIHelpers.Parse.Float(Name, "HitstopInSeconds");
+        
+        LoadResult = INIHelpers.LoadINI(GlobalVariables.ModName, @"\\properties\\" + GlobalVariables.CurrentDifficulty + "\\unlocks.ini");
+
+        tmp.Unlockable = Unlocks.Init_Unlockable_Requirements(Name);
+
+        return tmp;
+    }
+
+    static void Init_Difficulty()
+    {
+        string LoadResult = "";
+
+        LoadResult = INIHelpers.LoadINI(GlobalVariables.ModName, @"\\properties\\" + GlobalVariables.CurrentDifficulty + "\\general.ini");
+
+        if (LoadResult == "ModNotFound" || LoadResult == "ININotFound")
+            return;
+
+        DefenseMin = INIHelpers.Parse.Float("Stats", "DefenseMin");
+        DefenseMax = INIHelpers.Parse.Float("Stats", "DefenseMax");
+
+        if (LoadResult == "ININotFound")
+            return;
+
+        Drives.PosDrive = Init_Drive("PosDrive");
+        Drives.NegDrive = Init_Drive("NegDrive");
+        Drives.EmptyDrive = Init_Drive("EmptyDrive");
+    }
+
+    var SonicParametersInfo = Reflection.GetDataInfo<SonicParameters.Root>("player_common");
+    var pBlackboardItem = BlackboardItem.Get();
+//
+{
+    if (Player.GetPlayerType() != Player.PlayerType.Sonic)
+        return;
+
+    if (!IsInitialised || GlobalVariables.UpdateForever)
+    {
+        IsInitialised = true;
+        Init_Difficulty();
+    }
+
+    if (GlobalVariables.DifficultyJustChanged)
+        Init_Difficulty();
+    
+    bool isSuper = BlackboardStatus.IsSuper();
+
+    float DeltaTime = Time.GetDeltaTime();
+
+    string lastDrive = Drives.CurDrive;
+
+    // unlock/lock drives
+
+    Drives.PosDrive.Unlockable.isUnlocked = Unlocks.Check_Lock_State(Drives.PosDrive.Unlockable);
+    Drives.NegDrive.Unlockable.isUnlocked = Unlocks.Check_Lock_State(Drives.NegDrive.Unlockable);
+    Drives.EmptyDrive.Unlockable.isUnlocked = Unlocks.Check_Lock_State(Drives.EmptyDrive.Unlockable);
+
+    Drives.Drive posDrive = Drives.Get_Drive("PosDrive");
+    Drives.Drive negDrive = Drives.Get_Drive("NegDrive");
+
+    if (Player.Input.IsPressed(Player.InputActionType.PlayerLightDash))
+        Drives.CurDrive = "EmptyDrive";
+
+    if (Player.Input.IsDown(Player.InputActionType.PlayerLightDash))
+    {
+        bool isPos = Player.Input.IsPressed(Player.InputActionType.PlayerAttack);
+        bool isNeg = Player.Input.IsPressed(Player.InputActionType.PlayerStomping);
+
+        if (isPos && Drives.PosDrive.Unlockable.isUnlocked)
+        {
+            if (posDrive.isEnabled && pBlackboardItem->RingCount > 0)
+                Drives.CurDrive = "PosDrive";
+        }
+
+        if (isNeg && Drives.NegDrive.Unlockable.isUnlocked)
+        {
+            if (negDrive.isEnabled && pBlackboardItem->RingCount > 0)
+                Drives.CurDrive = "NegDrive";
+        }
+
+        if (lastDrive != Drives.CurDrive && Drives.CurDrive != "EmptyDrive")
+        {
+            Player.Effect.PlayEffect("DriveStart", "ef_so_skill_accelerator_aura01");
+            Player.Sound.PlaySound("sn_ringmax");
+            Player.Sound.PlaySound("sn_homingshot");
+        }
+    }
+
+    if (Drives.CurDrive == "EmptyDrive")
+        Player.Effect.StopEffect("DriveStart");
+
+    if (Drives.CurDrive != "EmptyDrive")
+         Sonic.Effect.SetCyloopAuraVisibility(true);  
+    else if (!IS_STATE_FLAG(IsCyloop) && !isSuper) // dont disable cyloop aura if we are super because that would disable his cool outline
+        Sonic.Effect.SetCyloopAuraVisibility(false);
+
+    EffectPlayTimer += DeltaTime;
+
+    // limit effects to 30 times a second
+    if (EffectPlayTimer > 0.033f && Drives.CurDrive != "EmptyDrive")
+    {
+        EffectPlayTimer = 0;
+
+        if (Drives.CurDrive == "PosDrive")
+            Player.Effect.PlayEffect("PosDrive", Drives.PosDrive.passiveCemt);
+        else if (Drives.CurDrive == "NegDrive")
+            Player.Effect.PlayEffect("NegDrive", Drives.NegDrive.passiveCemt);
+    }
+
+    // down below is what gives the effects of each drive except for the attack and phantomrush
+    // attack is in move_staleness.hmm, phantomrush is in ranks.hmm
+    // i suck at organnize......
+
+    Drives.Drive curDriveStruct = Drives.Get_Drive(Drives.CurDrive);
+
+    if (!curDriveStruct.isEnabled || !curDriveStruct.Unlockable.isUnlocked)
+    {
+        Drives.CurDrive = "EmptyDrive";
+        return;
+    }
+
+    GlobalVariables.RankPointsIncrease += curDriveStruct.RankPointGain * DeltaTime;
+
+    if (SonicParametersInfo.pData == null)
+        return;
+
+    if (pBlackboardItem == null)
+    {
+        Drives.CurDrive = "EmptyDrive";
+        return;
+    }
+
+    RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.common.defensive.rateMin, (byte)(DefenseMin * curDriveStruct.defenseMultiplier));
+	RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.common.defensive.rateMax, (byte)(DefenseMax * curDriveStruct.defenseMultiplier));
+
+    GlobalVariables.HitstopToUse = curDriveStruct.HitstopInSeconds;
+
+    if (isSuper)
+    {
+        RingDrainTimer += (curDriveStruct.ringDrainSec * DeltaTime) * 0.5f;
+        RingGainTimer += (curDriveStruct.ringGainSec * DeltaTime) * 0.5f;
+    }
+    else
+    {
+        RingDrainTimer += curDriveStruct.ringDrainSec * DeltaTime;
+        RingGainTimer += curDriveStruct.ringGainSec * DeltaTime;
+    }
+
+    if (RingDrainTimer >= 1)
+    {
+        RingDrainTimer = 0;
+        if (pBlackboardItem->RingCount > 0)
+        {
+            GlobalVariables.RingDecreaseQueue += 1;
+        }
+        else
+        {
+            Drives.CurDrive = "EmptyDrive";
+            return;
+        }
+    }
+
+    if (RingGainTimer >= 1)
+    {
+        RingGainTimer = 0;
+        if (pBlackboardItem->RingCount > 0)
+        {
+            GlobalVariables.RingIncreaseQueue += 1;
+        }
+        else
+        {
+            Drives.CurDrive = "EmptyDrive";
+            return;
+        }
+    }
+}

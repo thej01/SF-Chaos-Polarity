@@ -1,0 +1,455 @@
+Code "Global Updates" by "thej01"
+//
+    #include "BlackboardStatus" noemit
+
+    #lib "GlobalVariables"
+    #lib "INIHelpers"
+    #lib "BlackboardStatus"
+    #lib "BlackboardBattle"
+
+    static bool IsInitialised = false;
+
+    static string LastDifficulty = "";
+
+    var pBlackboardStatus = BlackboardStatus.Get();
+    var pBlackboardBattle = BlackboardBattle.Get();
+//
+{
+
+    if (!IsInitialised || GlobalVariables.UpdateForever)
+    {
+        string LoadResult = "";
+        LoadResult = INIHelpers.LoadINI(GlobalVariables.ModName, @"\\properties\\global.ini");
+        IsInitialised = true;
+
+        if (LoadResult == "ModNotFound" || LoadResult == "ININotFound")
+            return;
+        
+        GlobalVariables.UpdateForever = INIHelpers.Parse.Bool("Main", "UpdateRealTime");
+        GlobalVariables.ForceDifficultySetting = INIHelpers.Parse.String("Main", "ForceDifficulty");
+    }
+
+    if (pBlackboardStatus == null)
+        return;
+
+    string difficulty = pBlackboardStatus->Difficulty.ToString();
+    
+    GlobalVariables.DifficultyJustChanged = false;
+
+    if (difficulty != LastDifficulty)
+        GlobalVariables.DifficultyJustChanged = true;
+
+    if (GlobalVariables.ForceDifficultySetting != "none")
+        GlobalVariables.CurrentDifficulty = GlobalVariables.ForceDifficultySetting;
+    else
+        GlobalVariables.CurrentDifficulty = difficulty;
+
+    LastDifficulty = difficulty;
+
+    GlobalVariables.PhantomRushJustActivated = false;
+    GlobalVariables.PhantomRushJustLost = false;
+
+    // i swear that the combat flag just didnt work for me. maybe v1.41 thing?
+
+    if (pBlackboardBattle->PhantomRushAmount >= 100.0f)
+    {
+        if (!GlobalVariables.IsPhantomRushActive)
+            GlobalVariables.PhantomRushJustActivated = true;
+
+        GlobalVariables.IsPhantomRushActive = true;
+    }
+    if (pBlackboardBattle->PhantomRushAmount <= 0.0f)
+    {
+        if (GlobalVariables.IsPhantomRushActive)
+            GlobalVariables.PhantomRushJustLost = true;
+            
+        GlobalVariables.IsPhantomRushActive = false;
+    }
+}
+
+Code "Perfect Parry Reworked" by "thej01"
+//
+    #include "Reflection" noemit
+    #include "BlackboardStatus" noemit
+
+    #lib "Reflection"
+    #lib "Unlocks"
+    #lib "BlackboardStatus"
+    #lib "GlobalVariables"
+    #lib "INIHelpers"
+    #lib "SonicParameters"
+    #lib "Sonic"
+    #lib "Time"
+    #lib "Lua"
+
+    static bool IsInitialised = false;
+
+    static float ReworkedPerfectParryWindow = 0.2f;
+
+    static float ParryTime = 0;
+
+    static float ParryMin = 0.05f;
+    static float ParryMax = 5f;
+
+    static float PerfectParryMin = 0.05f;
+    static float PerfectParryMax = 5f;
+
+    static bool IsAlwaysPerfect = false;
+
+    static bool JustRewardedParry = false;
+    static bool UseReworkedPerfectParry = true;
+
+    static int DifficultyToInt = 0;
+
+    var SonicParametersInfo = Reflection.GetDataInfo<SonicParameters.Root>("player_common");
+
+    static void Init_Difficulty()
+    {
+        string LoadResult = "";
+        LoadResult = INIHelpers.LoadINI(GlobalVariables.ModName, @"\\properties\\" + GlobalVariables.CurrentDifficulty + "\\general.ini");
+
+        if (LoadResult == "ModNotFound" || LoadResult == "ININotFound")
+            return;
+        
+        ParryMin = INIHelpers.Parse.Float("Parry", "MinTime");
+        ParryMax = INIHelpers.Parse.Float("Parry", "MaxTime");
+
+        PerfectParryMin = INIHelpers.Parse.Float("Parry", "PerfectMinTime");
+        PerfectParryMax = INIHelpers.Parse.Float("Parry", "PerfectMaxTime");
+
+        IsAlwaysPerfect = INIHelpers.Parse.Bool("Parry", "AlwaysUsePerfectParry");
+
+        UseReworkedPerfectParry = INIHelpers.Parse.Bool("PerfectParryReworked", "ReworkedPerfectParry");
+
+        ReworkedPerfectParryWindow = INIHelpers.Parse.Float("PerfectParryReworked", "Window");
+    }
+//
+{
+    if (!IsInitialised || GlobalVariables.UpdateForever)
+    {
+        IsInitialised = true;
+        Init_Difficulty();
+    }
+
+    if (GlobalVariables.DifficultyJustChanged)
+        Init_Difficulty();
+
+    var pBlackboardStatus = BlackboardStatus.Get();
+
+    float DeltaTime = Time.GetDeltaTime();
+
+    if (IsAlwaysPerfect)
+    {
+        if (!IS_COMBAT_FLAG(IsPerfectParry))
+            SET_COMBAT_FLAG(IsPerfectParry, true)
+    }
+
+    if (pBlackboardStatus == null)
+		return;
+
+    if (SonicParametersInfo.pData == null)
+        return;
+
+    if (Player.GetPlayerType() != Player.PlayerType.Sonic)
+        return;
+
+    // Perfect Parry (new)
+    GlobalVariables.JustGotPerfectParry = false;
+    GlobalVariables.JustGotParry = false;
+
+    // using the CombatDX dll lets us get the animation of the player, which is how this whole thing works!
+
+    string Anim = Lua.Call<string>("GetCurrentAnimationName");
+
+    if (Player.State.GetCurrentStateID<Sonic.StateID>() == Sonic.StateID.StateParry)
+        ParryTime += DeltaTime;
+
+    //Console.WriteLine(Anim);
+
+    if (Anim == "PARRY" || Anim == "PARRY_AIR" || Anim == "PARRY_JUST" || Anim == "PARRY_FLY")
+    {
+        if (!JustRewardedParry)
+        {
+            if (ParryTime <= ReworkedPerfectParryWindow && UseReworkedPerfectParry && Unlocks.PerfectParryReworked.isUnlocked)
+                GlobalVariables.JustGotPerfectParry = true;
+
+            GlobalVariables.JustGotParry = true;
+        }
+        
+        JustRewardedParry = true;
+        ParryTime = 0;
+    }
+    else
+    {
+        JustRewardedParry = false;
+    }
+
+    string Difficulty = pBlackboardStatus->Difficulty.ToString();
+
+    switch (Difficulty)
+    {
+        case "Easy":
+            DifficultyToInt = 0;
+            break;
+
+        case "Normal":
+            DifficultyToInt = 1;
+            break;
+        
+        case "Hard":
+            DifficultyToInt = 2;
+            break;
+
+        case "Extreme":
+            DifficultyToInt = 3;
+            break;
+
+        default:
+            DifficultyToInt = 0;
+            break;
+    }
+
+    // set parry stuffs
+
+    if (IS_COMBAT_FLAG(IsPerfectParry))
+        RFL_SET_PARAM(SonicParametersInfo, forwardView.modePackage.parry.minRecieveTime, PerfectParryMin);
+    else
+        RFL_SET_PARAM(SonicParametersInfo, forwardView.modePackage.parry.minRecieveTime, ParryMin);
+
+    RFL_SET_PARAM(SonicParametersInfo, forwardView.modePackage.parry.maxRecieveTimes[DifficultyToInt], ParryMax);
+    RFL_SET_PARAM(SonicParametersInfo, forwardView.modePackage.parry.justRecieveTimes[DifficultyToInt], PerfectParryMax);
+}
+
+Code "Add Enemy Sneak Attack to Double Tap Bumpers" by "thej01" in "thej01's codes/Gameplay" does "Adds enemy sneak attack state to double tap bumpers instead of hitting, then pressing bumper.\nThis does not affect Super Sonic"
+//
+    #lib "Sonic"
+    #lib "Player"
+    #lib "GlobalVariables"
+    #lib "INIHelpers"
+    #lib "Unlocks"
+
+    static bool CanTurnAround = false;
+
+    static bool IsInitialised = false;
+    static bool IsEnabled = true;
+
+    static void Init_Difficulty()
+    {
+        string LoadResult = "";
+        LoadResult = INIHelpers.LoadINI(GlobalVariables.ModName, @"\\properties\\" + GlobalVariables.CurrentDifficulty + "\\moves.ini");
+
+        if (LoadResult == "ModNotFound" || LoadResult == "ININotFound")
+            return;
+
+        IsEnabled = INIHelpers.Parse.Bool("EnemySneak", "IsEnabled");
+    }
+//
+{
+    if (Player.GetPlayerType() != Player.PlayerType.Sonic)
+        return;
+
+    if (!IsInitialised || GlobalVariables.UpdateForever)
+    {
+        Init_Difficulty();
+        IsInitialised = true;
+    }
+
+    if (GlobalVariables.DifficultyJustChanged)
+        Init_Difficulty();
+
+    if (!IsEnabled || !Unlocks.ManualTakeBehind.isUnlocked)
+    {
+        CanTurnAround = false;
+        return;
+    }
+
+    if (Player.State.GetCurrentStateID<Sonic.StateID>() == Sonic.StateID.StateAvoid)
+    {
+        if (CanTurnAround)
+        {
+            bool LeftBumperPressed = Player.Input.IsPressed(Player.InputActionType.PlayerLeftStep);
+            bool RightBumperPressed = Player.Input.IsPressed(Player.InputActionType.PlayerRightStep)
+            if (LeftBumperPressed || RightBumperPressed)
+            {
+                // if we dont check for lock on cursor the game will crash
+                // i havent actually tested if it works during super, but i disabled it just in case.
+                if (!BlackboardStatus.IsSuper() && Player.Status.IsLockOnCursorVisible())
+                    Player.State.SetState(Sonic.StateID.StateTakeBehind);
+            }
+        }
+        CanTurnAround = true;
+    }
+    else
+    {
+        CanTurnAround = false;
+    }
+}
+
+
+Code "Remove (most) hitstop" by "thej01"
+//
+    #include "Reflection" noemit
+
+    #lib "Reflection"
+    #lib "GameHitStopParameter"
+    #lib "Hitstop"
+    #lib "GlobalVariables"
+//
+{
+    var GameHitStopParameterInfo = Reflection.GetDataInfo<GameHitStopParameter.Root>("hitstop");
+
+    if (GameHitStopParameterInfo.pData == null)
+        return;
+
+    float hitstop = GlobalVariables.HitstopToUse
+
+    RFL_SET_PARAM(GameHitStopParameterInfo, data[(int)Hitstop.HitstopID.Charge].time, hitstop);
+    RFL_SET_PARAM(GameHitStopParameterInfo, data[(int)Hitstop.HitstopID.ChargeFinish].time, hitstop);
+    RFL_SET_PARAM(GameHitStopParameterInfo, data[(int)Hitstop.HitstopID.HomingFinish].time, hitstop);
+    RFL_SET_PARAM(GameHitStopParameterInfo, data[(int)Hitstop.HitstopID.Accele1].time, hitstop);
+    RFL_SET_PARAM(GameHitStopParameterInfo, data[(int)Hitstop.HitstopID.Accele2].time, hitstop);
+    RFL_SET_PARAM(GameHitStopParameterInfo, data[(int)Hitstop.HitstopID.Smash].time, hitstop);
+    RFL_SET_PARAM(GameHitStopParameterInfo, data[(int)Hitstop.HitstopID.Avoid].time, 0);
+    RFL_SET_PARAM(GameHitStopParameterInfo, data[(int)Hitstop.HitstopID.Avoid2].time, 0);
+    RFL_SET_PARAM(GameHitStopParameterInfo, data[(int)Hitstop.HitstopID.HomingAttack].time, hitstop);
+    RFL_SET_PARAM(GameHitStopParameterInfo, data[(int)Hitstop.HitstopID.EnemyTakeBehind].time, 0);
+    RFL_SET_PARAM(GameHitStopParameterInfo, data[(int)Hitstop.HitstopID.EnemyDefeat0].time, 0);
+    RFL_SET_PARAM(GameHitStopParameterInfo, data[(int)Hitstop.HitstopID.EnemyDefeat1].time, 0);
+    RFL_SET_PARAM(GameHitStopParameterInfo, data[(int)Hitstop.HitstopID.EnemyDefeat2].time, 0);
+    RFL_SET_PARAM(GameHitStopParameterInfo, data[(int)Hitstop.HitstopID.CommonAttackFinish].time, hitstop);
+    RFL_SET_PARAM(GameHitStopParameterInfo, data[(int)Hitstop.HitstopID.CommonSSSkillFinish].time, hitstop);
+}
+
+Code "Manual Finishers" by "thej01" in "thej01's codes/Gameplay" does "Hold in a direction to do a finisher!"
+//
+    #lib "Player"
+    #lib "Sonic"
+    #lib "XInput"
+    #lib "INIHelpers"
+    #lib "GlobalVariables"
+    #lib "Unlocks"
+
+    static bool IsInitialised = false;
+    static bool IsEnabled = false;
+
+    static void Init_Difficulty()
+    {
+        string LoadResult = ""
+
+        LoadResult = INIHelpers.LoadINI(GlobalVariables.ModName, @"\\properties\\" + GlobalVariables.CurrentDifficulty + "\\moves.ini");
+
+        if (LoadResult == "ModNotFound" || LoadResult == "ININotFound")
+            return;
+
+        IsEnabled = INIHelpers.Parse.Bool("ComboFinishers", "IsManualEnabled");
+    }
+//
+{
+    
+    if (Player.GetPlayerType() != Player.PlayerType.Sonic)
+        return;
+
+    if (!IsInitialised || GlobalVariables.UpdateForever)
+    {
+        IsInitialised = true;
+        Init_Difficulty();
+    }
+
+    if (GlobalVariables.DifficultyJustChanged)
+        Init_Difficulty();
+
+    if (!IsEnabled || !Unlocks.ManualFinishers.isUnlocked)
+        return;
+
+    // TODO: do this without xinput so other controllers and keyboards can do it
+
+    if (Player.State.GetCurrentStateID<Sonic.StateID>() == Sonic.StateID.StateAcceleCombo1 || Player.State.GetCurrentStateID<Sonic.StateID>() == Sonic.StateID.StateAcceleCombo2)
+    {
+        if (!XInput.IsAnalogNeutral(0))
+            Player.State.SetState(Sonic.StateID.StateHomingFinish);
+    }
+}
+
+Code "Remove The End's tackle attack" by "thej01"
+//
+    #include "Reflection" noemit
+
+    #lib "BossRifleBeastConfig"
+    #lib "Reflection"
+
+    static int ReplaceNum = 0;
+
+    static BossRifleBeastConfig.AtackType[] AttackReplacers = new BossRifleBeastConfig.AtackType[2];
+
+    // there was originally more to this array 
+    AttackReplacers[0] = BossRifleBeastConfig.AtackType.AT_CROW_L;
+    AttackReplacers[1] = BossRifleBeastConfig.AtackType.AT_CROW_R;
+
+    var RifleBeastInfo = Reflection.GetDataInfo<BossRifleBeastConfig.Root>("boss_rifle_beast");
+//
+{
+    if (RifleBeastInfo.pData == null)
+        return;
+
+    // i didnt feel like manually replacing them
+
+    for (int i = 0; i < 12; ++i)
+    {
+        for (int j = 0; j < 10; ++j)
+        {
+            if ((RFL_GET_PARAM(RifleBeastInfo, battleParam.attackPatternAfter[i].attackPattern[j])) == BossRifleBeastConfig.AtackType.AT_TACKLE)
+            {
+                RFL_SET_PARAM(RifleBeastInfo, battleParam.attackPatternAfter[i].attackPattern[j], AttackReplacers[ReplaceNum]);
+                ++ReplaceNum;
+                if (ReplaceNum > 1)
+                    ReplaceNum = 0;
+            }
+        }
+    }
+}
+
+Code "Text Replacements" by "thej01"
+//
+    #lib "Converse"
+    #lib "INIHelpers"
+
+    static bool IsInitialised = false;
+
+    static string MasterTrialObjective = "";
+    static string TheEndSS2Transformation = "";
+
+    static string GetTooltip(string Category = "")
+    {
+        string tooltip = "";
+
+        int lineAmount = INIHelpers.Parse.Int(Category, "TooltipLineAmount");
+
+        tooltip = INIHelpers.Parse.String(Category, "Tooltip0");
+        for (int line = 1; line < lineAmount; ++line)
+            tooltip = (tooltip + "\n" + INIHelpers.Parse.String(Category, "Tooltip" + line.ToString()));
+
+        return tooltip;
+    }
+
+    static void Init_Lang()
+    {
+        string LoadResult = "";
+        LoadResult = INIHelpers.LoadINI(GlobalVariables.ModName, @"\\lang\\" + GlobalVariables.CurrentLanguage + "\\bosses.ini");
+
+        if (LoadResult == "ModNotFound" || LoadResult == "ININotFound")
+            return;
+        
+        MasterTrialObjective = GetTooltip("MasterTrialObjective");
+        TheEndSS2Transformation = GetTooltip("TheEndSS2Transformation");
+    }
+//
+{
+    if (!IsInitialised || GlobalVariables.UpdateForever)
+    {
+        IsInitialised = true;
+        Init_Lang();
+    }
+
+    Converse.Redirect("tu1000dlc_245", MasterTrialObjective);
+    Converse.Redirect("tu1000dlc_275", TheEndSS2Transformation);
+}

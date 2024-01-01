@@ -1,0 +1,49 @@
+Code "Unlocks" by "thej01"
+//
+    #include "SaveData" noemit
+
+    #lib "Unlocks"
+    #lib "Drives"
+    #lib "INIHelpers"
+    #lib "GlobalVariables"
+    #lib "Player"
+
+    static bool IsInitialised = false;
+
+    static void Init_Difficulty()
+    {
+        string LoadResult = "";
+
+        LoadResult = INIHelpers.LoadINI(GlobalVariables.ModName, @"\\properties\\" + GlobalVariables.CurrentDifficulty + "\\unlocks.ini");
+
+        if (LoadResult == "ModNotFound" || LoadResult == "ININotFound")
+            return;
+
+        Unlocks.SpinSlice = Unlocks.Init_Unlockable_Requirements("SpinSlice");
+        Unlocks.ManualFinishers = Unlocks.Init_Unlockable_Requirements("ManualFinishers");
+        Unlocks.PursuitKick = Unlocks.Init_Unlockable_Requirements("PursuitKick");
+        Unlocks.PerfectParryReworked = Unlocks.Init_Unlockable_Requirements("PerfectParryReworked");
+        Unlocks.ManualTakeBehind = Unlocks.Init_Unlockable_Requirements("ManualTakeBehind");
+    }
+//
+{
+    if (Player.GetPlayerType() != Player.PlayerType.Sonic)
+        return;
+
+    if (!IsInitialised || GlobalVariables.UpdateForever)
+    {
+        IsInitialised = true;
+        Init_Difficulty();
+    }
+
+    if (GlobalVariables.DifficultyJustChanged)
+        Init_Difficulty();
+
+    // lord please forgive me for these next few lines
+
+    Unlocks.SpinSlice.isUnlocked = Unlocks.Check_Lock_State(Unlocks.SpinSlice);
+    Unlocks.ManualFinishers.isUnlocked = Unlocks.Check_Lock_State(Unlocks.ManualFinishers);
+    Unlocks.PursuitKick.isUnlocked = Unlocks.Check_Lock_State(Unlocks.PursuitKick);
+    Unlocks.PerfectParryReworked.isUnlocked = Unlocks.Check_Lock_State(Unlocks.PerfectParryReworked);
+    Unlocks.ManualTakeBehind.isUnlocked = Unlocks.Check_Lock_State(Unlocks.ManualTakeBehind);
+}

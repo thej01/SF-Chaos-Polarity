@@ -1,0 +1,81 @@
+Code "Pursuit Kick Restoration" by "thej01" in "thej01's codes/Gameplay/Restorations" does "Hold B during an attack and after that, you'll perform the Pursuit Kick!"
+//
+    #lib "INIHelpers"
+    #lib "Sonic"
+    #lib "Player"
+    #lib "GlobalVariables"
+    #lib "Unlocks"
+
+    static int StateAmount = 12;
+
+    static bool IsInitialised = false;
+
+    static bool AllowInDodge = true;
+
+    static int[] AllowedStates = new int[StateAmount + 1];
+//
+{
+    if (Player.GetPlayerType() != Player.PlayerType.Sonic)
+        return;
+
+    if (!Unlocks.PursuitKick.isUnlocked)
+        return;
+    
+    if (!IsInitialised || GlobalVariables.UpdateForever)
+    {
+        string LoadResult = "";
+        LoadResult = INIHelpers.LoadINI(GlobalVariables.ModName, @"\\properties\\global.ini");
+        IsInitialised = true;
+
+        if (LoadResult == "ModNotFound" || LoadResult == "ININotFound")
+            return;
+
+        for (int curState = 0; curState < (StateAmount + 1); ++curState)
+            AllowedStates[curState] = INIHelpers.Parse.Int("PursuitKick", "State" + curState.ToString());
+
+        AllowInDodge = INIHelpers.Parse.Bool("PursuitKick", "AllowInDodge");
+    }
+
+    if (Player.State.GetCurrentStateID<Sonic.StateID>() == Sonic.StateID.StateAvoid)
+    {
+        // just pray to god this works
+        if (Player.Status.IsLockOnCursorVisible() && AllowInDodge)
+            Player.State.Redirect(Sonic.StateID.StateStomping, Sonic.StateID.StatePursuitKick);
+        return;
+    }
+    else
+    {
+        Player.State.Restore(Sonic.StateID.StateStomping);
+    }
+    
+    // linking pursuit kick outta other moves
+
+    for (int curState = 0; curState < (StateAmount + 1); ++curState)
+    {
+        if (Player.State.GetCurrentStateID<int>() == AllowedStates[curState])
+        {
+            if (Player.Input.IsDown(Player.InputActionType.PlayerStomping))
+            {
+                Player.State.Redirect(Sonic.StateID.StateHomingFinished, Sonic.StateID.StatePursuitKick);
+                Player.State.Redirect(Sonic.StateID.StateFall, Sonic.StateID.StatePursuitKick);
+                Player.State.Redirect(Sonic.StateID.StateStomping, Sonic.StateID.StatePursuitKick);
+                Player.State.Redirect(Sonic.StateID.StateStompingBounce, Sonic.StateID.StatePursuitKick);
+            }
+            else
+            {
+                Player.State.Restore(Sonic.StateID.StateHomingFinished);
+                Player.State.Restore(Sonic.StateID.StateFall);
+                Player.State.Restore(Sonic.StateID.StateStomping);
+                Player.State.Restore(Sonic.StateID.StateStompingBounce);
+            }
+            return;
+        }
+        else
+        {
+            Player.State.Restore(Sonic.StateID.StateHomingFinished);
+            Player.State.Restore(Sonic.StateID.StateFall);
+            Player.State.Restore(Sonic.StateID.StateStomping);
+            Player.State.Restore(Sonic.StateID.StateStompingBounce);
+        }
+    }
+}

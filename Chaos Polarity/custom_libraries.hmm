@@ -1,0 +1,522 @@
+// i would NOT recommend using any of these librarys for your own mod (except for hitstop and physicshelpers mayber)
+
+Library "PhysicsHelpers" by "thej01"
+//
+    #lib "VectorHelpers"
+    #lib "Sonic"
+
+    #load "System.Numerics.dll"
+
+    using System.Numerics;
+
+    public static class Velocity
+    {
+        public static class Falling
+        {  
+            public static void Set(float amount = 0.0f)
+            {
+                var kinematics = Player.Kinematics.Get();
+                kinematics->Velocity.Y = amount;
+            }
+
+            public static void Change(float amount = 0.0f)
+            {
+                var kinematics = Player.Kinematics.Get();
+                kinematics->Velocity.Y += amount;
+            }
+        }  
+
+        public static class Forward
+        {
+            public static void Set(float amount = 0.0f)
+            {
+                var dir = VectorHelpers.LookRotation(Player.Kinematics.GetForward());
+                var kinematics = Player.Kinematics.Get();
+                kinematics->Velocity = VectorHelpers.GetForward(dir) * amount;
+            }
+
+            public static void Change(float amount = 0.0f)
+            {
+                var dir = VectorHelpers.LookRotation(Player.Kinematics.GetForward());
+                var kinematics = Player.Kinematics.Get();
+                kinematics->Velocity += VectorHelpers.GetForward(dir) * amount;
+            }
+        }
+
+    }
+
+    public static class Direction
+    {
+        public static void Flip()
+        {
+            var dir = VectorHelpers.LookRotation(-Player.Kinematics.GetForward());
+            var kinematics = Player.Kinematics.Get();
+            kinematics->Rotation = dir;
+        }
+    }
+//
+
+Library "INIHelpers" by "thej01"
+//
+    #lib "HMM"
+    #lib "INI"
+
+	using System.IO;
+    using System.Collections.Generic;
+
+    public Dictionary<string, Dictionary<string, string>> LoadedINI = new();
+    public string ModName = null;
+    public string INIPath = null;
+    public string ININame = null;
+
+    private const ConsoleColor ColorGray = ConsoleColor.Gray;
+	private const ConsoleColor ColorYellow = ConsoleColor.Yellow;
+	private const ConsoleColor ColorRed = ConsoleColor.Red;
+
+    private static void INILog(string text = "msg not found", ConsoleColor color = ColorGray)
+    {
+        Console.ForegroundColor = color;
+        Console.WriteLine("INIHelpers: " + text);
+        Console.ForegroundColor =  ColorGray;
+    }
+
+    /// <summary>
+    /// Loads an ini file. This is required to use any other method.
+    /// </summary>
+    /// <param name="SetModName"> Make this the same as your mod name display in HMM.</param>
+    /// <param name="SetININame"> INI file name.</param>
+    /// <returns> 
+    /// a string that determines the result of loading.
+    /// None = No issues
+    /// ModNotFound = Couldnt find mod, INI load failed. (incorrect mod name?)
+    /// MoreThanOneMod = There was more than one mod with that name, we loaded mod 0's INI.
+    /// ININotFound = INI file couldnt be found. INI load failed.
+    public static string LoadINI(string SetModName = "", string SetININame = "")
+    {
+        ModName = SetModName;
+        ININame = SetININame;
+        var modsQuery = HMM.FindModsByName(ModName);
+        string ReturnValue = "None";
+
+        // see if we found the mod folder
+		if (modsQuery.Count <= 0)
+        {
+            INIHelpers.INILog("Mod called: " + SetModName + " doesn't exist.", ColorRed);
+            return "ModNotFound";
+        }
+        
+		INIPath = System.IO.Path.Combine(modsQuery[0].Path, ININame.Substring(2));
+
+		// let the console know if there are for some reason more than 1 mod with the same name?!
+		if (modsQuery.Count > 1)
+        {
+            INIHelpers.INILog("Several Mods with name: " + SetModName + ". Defaulting to Mod 0's config.", ColorYellow);
+            ReturnValue = "SeveralMods";
+        }
+
+		// make sure the ini file actually exists
+		if (!File.Exists(INIPath))
+        {
+            INIHelpers.INILog("Attempt load: File doesn't exist at: " + INIPath + ".", ColorRed);
+            return "ININotFound";
+        }
+
+		// load the ini file
+		LoadedINI = INI.Read(INIPath);
+        return ReturnValue;
+    }
+
+    public static string ReloadCurrentINI()
+    {
+		// make sure the ini file actually exists
+		if (!File.Exists(INIPath))
+        {
+            INIHelpers.INILog("Attempt Reload: File doesn't exist at: " + INIPath + ".", ColorRed);
+            return "ININotFound";
+        }
+
+		// load the ini file
+		LoadedINI = INI.Read(INIPath);
+        return "None";
+    }
+
+    public static class Parse
+    {
+        private static bool IsValid(string Category = "", string Key = "")
+        {
+            if (LoadedINI.ContainsKey(Category))
+            {
+                if (LoadedINI[Category].ContainsKey(Key))
+                {
+                    return true;
+                }
+                else
+                {
+                    INIHelpers.INILog("Key [" + Key + "] doesn't exist for INI: " + INIPath, ColorRed);
+                    return false;
+                }
+            }
+            else
+            {
+                INIHelpers.INILog("Category [" + Category + "] doesn't exist for INI: " + INIPath, ColorRed);
+                return false;
+            }
+        }
+
+        public static bool Bool(string Category, string Key)
+        {
+            bool result = false;
+            if (!INIHelpers.Parse.IsValid(Category, Key))
+            {
+                return false;
+            }
+            else
+            {
+                bool.TryParse(LoadedINI[Category][Key], out result);
+                return result;
+            }
+        }
+
+        public static int Int(string Category, string Key)
+        {
+            int result = 0;
+            if (!INIHelpers.Parse.IsValid(Category, Key))
+            {
+                return 0;
+            }
+            else
+            {
+                int.TryParse(LoadedINI[Category][Key], out result);
+                return result;
+            }
+        }
+
+        public static string String(string Category, string Key)
+        {
+            if (!INIHelpers.Parse.IsValid(Category, Key))
+                return "";
+            else
+                return LoadedINI[Category][Key];
+        }
+
+        public static float Float(string Category, string Key)
+        {
+            float result = 0.0f;
+            if (!INIHelpers.Parse.IsValid(Category, Key))
+            {
+                return 0.0f;
+            }
+            else
+            {
+                float.TryParse(LoadedINI[Category][Key], out result);
+                return result;
+            }
+        }
+    }
+//
+// this library contains most variables that are shared between codes
+Library "GlobalVariables" by "thej01"
+//
+    public static bool UpdateForever = false;
+    public static bool DifficultyJustChanged = false;
+    public static bool PhantomRushJustActivated = false;
+    public static bool PhantomRushJustLost = false;
+    public static bool IsPhantomRushActive = false;
+    public static bool JustGotPerfectParry = false;
+    public static bool JustGotParry = false;
+
+    public const string ModName = "Chaos Polarity";
+    public static string ForceDifficultySetting = "none";
+    public static string CurrentDifficulty = "Easy";
+    public static string CurrentLanguage = "en";
+
+    public static int RingIncreaseQueue = 0;
+    public static int RingDecreaseQueue = 0;
+
+    public static float PhantomRushDecreaseQueue = 0;
+    public static float PhantomRushIncreaseQueue = 0;
+    // This one increase phantom rush but... faster.
+    public static float PhantomRushGainQueue = 0;
+    public static float RankPointsIncrease = 0;
+    public static float HitstopToUse = 0;
+//
+
+// this library contains all the data for unlocks, except for the drives.
+Library "Unlocks"
+//
+    #include "SaveData" noemit
+
+    #lib "Drives"
+
+    public struct Unlockable
+    {
+        public bool isUnlocked;
+
+        public int powerLevelNeeded;
+
+        public int guardLevelNeeded;
+
+        public int speedLevelNeeded;
+
+        public int ringLevelNeeded;
+    }
+
+    public static Unlockable SpinSlice;
+
+    public static Unlockable ManualFinishers;
+
+    public static Unlockable PursuitKick;
+
+    public static Unlockable PerfectParryReworked;
+
+    public static Unlockable ManualTakeBehind;
+
+    private const ConsoleColor ColorGray = ConsoleColor.Gray;
+	private const ConsoleColor ColorYellow = ConsoleColor.Yellow;
+	private const ConsoleColor ColorRed = ConsoleColor.Red;
+
+    private static void UnlockLog(string text = "msg not found", ConsoleColor color = ColorGray)
+    {
+        Console.ForegroundColor = color;
+        Console.WriteLine("UnlocksLibrary: " + text);
+        Console.ForegroundColor =  ColorGray;
+    }
+
+    // i hope theres a better way to do this
+
+    // returns a Unlockable struct via name
+    public static Unlockable Get_Unlockable(string UnlockableName = "")
+    {
+        switch (UnlockableName)
+        {
+            case "SpinSlice":
+                return SpinSlice;
+
+            case "ManualFinishers":
+                return ManualFinishers;
+
+            case "PursuitKick":
+                return PursuitKick;
+
+            case "PerfectParryReworked":
+                return PerfectParryReworked;
+
+            case "ManualTakeBehind":
+                return ManualTakeBehind;
+
+            case "PosDrive":
+                return Drives.PosDrive.Unlockable;
+
+            case "NegDrive":
+                return Drives.NegDrive.Unlockable;
+
+            case "EmptyDrive":
+                return Drives.EmptyDrive.Unlockable;
+
+            default:
+                UnlockLog("Unlockable \"" + UnlockableName + "\" doesn't exist", ColorRed);
+                return SpinSlice;
+        } 
+    }
+
+    // returns if the passed in unlockable counts as unlocked
+    public static bool Check_Lock_State(Unlocks.Unlockable UnlockToProcess)
+    {
+        bool isPowerLevel = ((int?)SAVE_GET_PARAM(character.powerLevel) >= (UnlockToProcess.powerLevelNeeded - 1));
+        bool isGuardLevel = ((int?)SAVE_GET_PARAM(character.guardLevel) >= (UnlockToProcess.guardLevelNeeded - 1));
+        bool isSpeedLevel = ((int?)SAVE_GET_PARAM(character.speedLevel) >= (UnlockToProcess.speedLevelNeeded - 1));
+        bool isRingLevel = ((int?)SAVE_GET_PARAM(character.ringLevel) >= (UnlockToProcess.ringLevelNeeded - 1));
+
+        return isPowerLevel && isGuardLevel && isSpeedLevel && isRingLevel;
+    }
+
+    // this assumes you have unlocks.ini loaded.
+    public static Unlocks.Unlockable Init_Unlockable_Requirements(string CategoryName = "")
+    {
+        Unlocks.Unlockable tmp;
+
+        tmp.isUnlocked = false;
+        tmp.powerLevelNeeded = INIHelpers.Parse.Int(CategoryName, "powerLevelNeeded");
+        tmp.guardLevelNeeded = INIHelpers.Parse.Int(CategoryName, "guardLevelNeeded");
+        tmp.speedLevelNeeded = INIHelpers.Parse.Int(CategoryName, "speedLevelNeeded");
+        tmp.ringLevelNeeded = INIHelpers.Parse.Int(CategoryName, "ringLevelNeeded");
+
+        return tmp;
+    }
+
+//
+
+// this library contains all the data related to drives, including their unlock data
+Library "Drives" by "thej01"
+//
+    #lib "Unlocks"
+    
+    public static string CurDrive = "EmptyDrive";
+
+    public struct Drive
+    {
+        public string passiveCemt;
+
+        public bool isEnabled;
+
+        public float ringDrainSec;
+
+        public float attackMultiplier;
+
+        public float defenseMultiplier;
+
+        public float ringGainSec;
+
+        // i suck at consistency im so sorry
+
+        public float RankPointGain;
+
+        public float PhantomRushGain;
+
+        public float HitstopInSeconds;
+
+        public Unlocks.Unlockable Unlockable;
+    }
+
+    public static Drive EmptyDrive;
+
+    public static Drive NegDrive;
+
+    public static Drive PosDrive;
+
+
+    // this is dumb
+
+
+    // returns a Drive struct via name
+    public static Drive Get_Drive(string DriveName)
+    {
+        switch (DriveName)
+        {
+            case "EmptyDrive":
+                return EmptyDrive;
+
+            case "PosDrive":
+                return PosDrive;
+
+            case "NegDrive":
+                return NegDrive;
+
+            default:
+                Console.WriteLine("Drive \"" + DriveName + "\" doesn't exist");
+                return EmptyDrive;
+        } 
+    }
+//
+
+// this library contains hitstop ids
+Library "Hitstop" by "thej01"
+//
+    // Unk = unknown
+    // missing values are null
+    // feel free to clean this up, but i wouldnt recommend using it.
+    public enum HitstopID : int
+    {
+        Unk_Attack0 = 0,
+        
+        Accele1 = 1,
+
+        Accele2 = 2,
+
+        Unk_JustStep = 3,
+
+        HomingAttack = 4,
+
+        Unk_Heeldrop = 5,
+
+        EnemyTakeBehind = 6,
+
+        Unk_ComboCyloop = 7,
+
+        Avoid = 8,
+        
+        Parry = 9,
+
+        Smash = 10,
+
+        EnemyDefeat0 = 11,
+
+        EnemyDefeat1 = 12,
+
+        EnemyDefeat2 = 13,
+
+        MinibossDefeat = 14,
+
+        Avoid2 = 15,
+
+        CommonAttackFinish = 16,
+
+        Unk_Somersault = 17,
+
+        Unk_SNAttack4 = 18,
+
+        Unk_SSNBlowoff = 19,
+
+        JustParry = 20,
+
+        CommonSSSkillFinish = 21,
+
+        Unk_SSBehind = 22,
+
+        Unk_AttackLight = 24,
+
+        Unk_AttackNormal = 25,
+
+        Unk_AttackMiddle = 26,
+
+        Unk_AttackStrong = 27,
+
+        Unk_AttackHeavy = 28,
+
+        Unk_AttackStomp1 = 29,
+
+        Unk_AttackStomp2 = 30,
+        
+        HomingFinish = 31,
+
+        Charge = 32,
+
+        ChargeFinish = 33,
+
+        Unk_FlyerDamagedFirst = 34,
+
+        KnightShieldRideBlock = 35,
+
+        KnightShieldRideHit = 36,
+
+        Unk_SumoExpansion =  37,
+
+        Unk_KnightAttackWeak = 38,
+
+        KnightSwordHit = 39,
+
+        KnightShieldDodge = 40,
+
+        Unk_RageShieldHit = 41,
+
+        KnucklesMaximumHeatKnuckle = 43,
+
+        NitroBoost = 44,
+
+        NitroBoostAirBoost = 45,
+
+        Unk_JustParry2 = 46,
+
+        AmyCharmLock = 47,
+
+        AmyCharmAttack = 48,
+
+        Unk_JustParry3 = 49,
+
+        Unk_SpinBoostOverheat = 50,
+
+        SupremeBeastWireRemove = 52,
+
+        MineExplosion = 53,
+    }
+//

@@ -1,0 +1,446 @@
+Code "Combo Ranks" by "thej01 && Helped with by Gordin Ramsay"
+//
+    #include "BlackboardStatus" noemit
+    #include "Reflection" noemit
+
+    #lib "INIHelpers"
+    #lib "GlobalVariables"
+    #lib "Converse"
+    #lib "Lua"
+    #lib "Time"
+    #lib "BlackboardBattle"
+    #lib "BlackboardStatus"
+    #lib "BlackboardItem"
+    #lib "GameObject"
+    #lib "GameHitStopParameter"
+    #lib "Reflection"
+    #lib "Drives"
+    #lib "Player"
+
+    #import "GOComponents"
+    #import "PlayerVisuals"
+
+    static bool UpdateRank = false;
+    static bool IsInitialised = false;
+    static bool StartComboInitialised = false;
+    static bool BossInitialised = false;
+    static bool BossRingsInitialised = false;
+
+    static float Points = 0;
+    static float RingIncreaseTimer = 0;
+    static float RingDecreaseTimer = 0;
+    // perfect parry thats what it stands for btw dont think about anytythingELSEPLEASE
+    static float PPEffectsEndTimer = 2;
+
+    static int ObtainedRank = 0;
+    static int LastObtainedRank = -1;
+    static int RankAmount = 5;
+
+    static float PointsSSMultiplier = 3;
+
+    static float PointsPhantomRushDivider = 90;
+
+    static float PointsComboCountDivider = 15;
+    static float PointsComboCountMax = 100;
+
+    static float ExtraPhantomRushDrain = 1;
+
+    static float PointsGainPerfectParry = 300;
+    static float PhantomRushGainPerfectParry = 200;
+
+    static float PerfectParrySlowDown = 0;
+
+    static float PerfectParryWindow = 0;
+
+    static int RingGainParry = 5;
+
+    static int RingGainPerfectParry = 5;
+
+    static int RingsPerRank = 15;
+
+    static int BossRingCount = 50;
+
+    static string ComboRankText = "";
+    static string CombatRankText = "";
+
+    static string[] RankNames = new string[RankAmount + 1];
+    static string[] RankNamesSS = new string[RankAmount + 1];
+    static float[] RankPoints = new float[RankAmount + 1];
+
+    static void Init_Difficulty()
+    {
+        string LoadResult = "";
+        LoadResult = INIHelpers.LoadINI(GlobalVariables.ModName, @"\\properties\\" + GlobalVariables.CurrentDifficulty + "\\ranks.ini");
+
+        if (LoadResult == "ModNotFound" || LoadResult == "ININotFound")
+            return;
+
+        for (int curRank = 0; curRank < (RankAmount + 1); ++curRank)
+            RankPoints[curRank] = INIHelpers.Parse.Float("Rank" + curRank.ToString(), "PointsNeeded");
+
+        PointsSSMultiplier = INIHelpers.Parse.Float("Main", "PointsSSMultiplier");
+
+        PointsPhantomRushDivider = INIHelpers.Parse.Float("Main", "PointsPhantomRushDivider");
+
+        PointsComboCountDivider = INIHelpers.Parse.Float("Main", "PointsComboCountDivider");
+        PointsComboCountMax = INIHelpers.Parse.Float("Main", "PointsComboCountMax");
+
+        RingsPerRank = INIHelpers.Parse.Int("Main", "RingsPerRank");
+
+        LoadResult = INIHelpers.LoadINI(GlobalVariables.ModName, @"\\properties\\" + GlobalVariables.CurrentDifficulty + "\\general.ini");
+
+        if (LoadResult == "ININotFound")
+            return;
+        
+        ExtraPhantomRushDrain = INIHelpers.Parse.Float("PhantomRush", "ExtraDrain");
+
+        PointsGainPerfectParry = INIHelpers.Parse.Float("PerfectParryReworked", "RankPointsGain");
+        PhantomRushGainPerfectParry = INIHelpers.Parse.Float("PerfectParryReworked", "PhantomRushGain");
+
+        RingGainParry = INIHelpers.Parse.Int("Parry", "RingGain");
+
+        RingGainPerfectParry = INIHelpers.Parse.Int("PerfectParryReworked", "RingGain");
+
+        PerfectParrySlowDown = INIHelpers.Parse.Float("PerfectParryReworked", "FrozenTime");
+
+        PerfectParryWindow = INIHelpers.Parse.Float("PerfectParryReworked", "Window");
+
+        BossRingCount = INIHelpers.Parse.Int("BossFight", "SSStartRings");
+    }
+
+    static void Init_Lang()
+    {
+        string LoadResult = "";
+        LoadResult = INIHelpers.LoadINI(GlobalVariables.ModName, @"\\lang\\" + GlobalVariables.CurrentLanguage + "\\ranks.ini");
+
+        if (LoadResult == "ModNotFound" || LoadResult == "ININotFound")
+            return;
+
+        for (int curRank = 0; curRank < (RankAmount + 1); ++curRank)
+        {
+            string rankNum = curRank.ToString();
+
+            RankNames[curRank] = INIHelpers.Parse.String("Rank" + rankNum, "Name");
+            RankNamesSS[curRank] = INIHelpers.Parse.String("Rank" + rankNum, "NameSS");
+        }
+
+        ComboRankText = INIHelpers.Parse.String("Main", "ComboRankName");
+        CombatRankText = INIHelpers.Parse.String("Main", "CombatRankName");
+    }
+
+    static void Get_Rank()
+    {
+        bool isBoss = Player.State.GetStatePlugin("StatePluginBossBattle") != null;
+
+        // get the current rank by points
+
+        ObtainedRank = 0;
+        if (Points < RankPoints[0])
+            Points = RankPoints[0] + 1;
+
+        for (int curRank = 0; curRank < (RankAmount + 1); ++curRank)
+        {
+            float pointsNeededForRank = RankPoints[curRank];
+
+            if (isBoss)
+                pointsNeededForRank *= PointsSSMultiplier;
+
+            if (Points >= pointsNeededForRank)
+                ObtainedRank = curRank;
+            else
+                break;
+        }
+    }
+
+    var pBlackboardBattle = BlackboardBattle.Get();
+    var pBlackboardItem = BlackboardItem.Get();
+    var GameHitStopParameterInfo = Reflection.GetDataInfo<GameHitStopParameter.Root>("hitstop");
+//
+{
+    if (Player.GetPlayerType() != Player.PlayerType.Sonic)
+        return;
+        
+    if (!IsInitialised || GlobalVariables.UpdateForever)
+    {
+        IsInitialised = true;
+        Init_Lang();
+        Init_Difficulty();
+    }
+
+    if (GlobalVariables.DifficultyJustChanged)
+        Init_Difficulty();
+
+    if (RankAmount < 0)
+        return;
+
+    if (pBlackboardBattle == null)
+        return;
+
+    if (GameHitStopParameterInfo.pData == null)
+        return;
+
+    float DeltaTime = Time.GetDeltaTime();
+
+    bool isBoss = Player.State.GetStatePlugin("StatePluginBossBattle") != null;
+    bool isSuper = BlackboardStatus.IsSuper();
+    bool isSS2 = false;
+
+    var data = Player.GetPlayerData();
+    if (data == null)
+        return;
+
+    var gocVisual = GameObject.GetGOC<GOCPlayerVisual>(&data->GameObject);
+    if (gocVisual == null)
+        return;
+
+    var visual = gocVisual->GetVisual<VisualSuperSonic>();
+    if (visual != null)
+        isSS2 = visual->IsSuperSonic2;
+
+    if (!isBoss)
+    {
+        BossRingsInitialised = false;
+        BossInitialised = false;
+    }
+
+    if (isBoss && !BossRingsInitialised)
+    {
+        if (BossRingCount > -1)
+            pBlackboardItem->RingCount = BossRingCount;
+
+        BossRingsInitialised = true;
+    }
+
+    float phantomRushDrainAmount = 0;
+    Drives.Drive curDriveStruct = Drives.Get_Drive(Drives.CurDrive);
+
+    if (GlobalVariables.IsPhantomRushActive)
+        phantomRushDrainAmount = ExtraPhantomRushDrain + (0 - curDriveStruct.PhantomRushGain);
+
+    pBlackboardBattle->PhantomRushAmount -= phantomRushDrainAmount * DeltaTime;
+
+    if (pBlackboardBattle->PhantomRushAmount <= 0)
+    {
+        if (!isBoss)
+        {
+            Lua.Call("ClearUserGuidUI");
+            LastObtainedRank = -1;
+            StartComboInitialised = false;
+            Points = 0;
+        }
+    }
+    else
+    {
+        if (!isBoss)
+        {
+            if (!StartComboInitialised)
+            {
+                Points = RankPoints[0] + 1;
+            }
+            else
+            {
+                LastObtainedRank = ObtainedRank;
+            }
+        }
+        else
+        {
+            if (!BossInitialised)
+            {
+                Points = RankPoints[0] + 1;
+                BossInitialised = true;
+            }
+            else
+            {
+                LastObtainedRank = ObtainedRank;
+            }
+        }
+
+        StartComboInitialised = true;
+
+        Points += ((1 * (pBlackboardBattle->PhantomRushAmount / PointsPhantomRushDivider)) * DeltaTime);
+    }
+
+    if (GlobalVariables.JustGotParry)
+       GlobalVariables.RingIncreaseQueue += RingGainParry;
+
+    // perfect parry
+    
+    if (GlobalVariables.JustGotPerfectParry)
+    {
+        RFL_SET_PARAM(GameHitStopParameterInfo, data[(int)Hitstop.HitstopID.JustParry].scale, PerfectParrySlowDown);
+
+        Points += PointsGainPerfectParry;
+        GlobalVariables.PhantomRushGainQueue = PhantomRushGainPerfectParry;
+        GlobalVariables.RingIncreaseQueue += RingGainPerfectParry;
+        Player.Sound.PlaySound("sn_ringmax");
+        Player.Sound.PlaySound("sn_homingshot");
+
+        if (!isSuper)
+        {
+            Player.Effect.PlayEffect("PerfectParryReworked", "ec_so_skill_chargeatk01_spiral03");
+            Player.Effect.PlayEffect("PerfectParryReworked", "ef_so_stomp_loop01");
+        }
+        else
+        {
+            Player.Effect.PlayEffect("PerfectParryReworked", "ec_ss_skill_chargeatk01_spiral03");
+            Player.Effect.PlayEffect("PerfectParryReworked", "ec_evcmn_ss_aura01_event_burst_spiral01");
+            Player.Effect.PlayEffect("PerfectParryReworked", "ec_evcmn_ss_aura01_event_burst_spiral02");
+            Player.Effect.PlayEffect("PerfectParryReworked", "ef_ss_stomp_loop01");
+            Player.Effect.PlayEffect("PerfectParryReworked", "ef_ss_hit_special01 ");
+        }
+
+        if (isSS2)
+        {
+            Player.Effect.PlayEffect("PerfectParryReworked", "ef_ss2_bo6160_burst02");
+            Player.Effect.PlayEffect("PerfectParryReworked", "ec_ob_portal_absorption01_vortex01")
+            Player.Effect.PlayEffect("PerfectParryReworked", "ec_ob_portal_absorption01_vortex02")
+        }
+
+        Player.Effect.PlayEffect("PerfectParryReworked", "ec_ft_damage_down01_sa01_shake01")
+        Player.Effect.PlayEffect("PerfectParryReworked", "ef_so_pow_boost_impact_fv017");
+        Player.Effect.PlayEffect("PerfectParryReworked", "ef_so_cyloop_attract_hit01")
+        Player.Effect.PlayEffect("PerfectParryReworked", "ef_so_pow_boost_impact_fv017")
+        
+        PPEffectsEndTimer = 0;
+    }
+    else
+    {
+        if (PPEffectsEndTimer >= 2)
+            Player.Effect.StopEffect("PerfectParryReworked");
+
+        if (PPEffectsEndTimer >= 5)
+            RFL_SET_PARAM(GameHitStopParameterInfo, data[(int)Hitstop.HitstopID.JustParry].scale, 0.1f);
+    }
+
+    PPEffectsEndTimer += DeltaTime;
+
+    // increase rank by combo count
+
+    if (pBlackboardBattle->ComboCount > 1)
+    {
+        float comboCount = pBlackboardBattle->ComboCount;
+
+        if (comboCount > PointsComboCountMax)
+            comboCount = PointsComboCountMax;
+
+        Points += 1 * (comboCount / PointsComboCountDivider) * DeltaTime;
+    }
+
+    if (GlobalVariables.PhantomRushDecreaseQueue > 0)
+    {
+        if (GlobalVariables.PhantomRushIncreaseQueue <= 0)
+        {
+            pBlackboardBattle->PhantomRushAmount -= (11f + phantomRushDrainAmount) * DeltaTime;
+        }
+        GlobalVariables.PhantomRushDecreaseQueue -= (11f + phantomRushDrainAmount) * DeltaTime;
+    }
+
+    if (GlobalVariables.PhantomRushIncreaseQueue > 0)
+    {
+        if (GlobalVariables.PhantomRushDecreaseQueue <= 0)
+        {
+            pBlackboardBattle->PhantomRushAmount += (11f + phantomRushDrainAmount) * DeltaTime;
+        }
+        GlobalVariables.PhantomRushIncreaseQueue -= (11f + phantomRushDrainAmount) * DeltaTime;
+    }
+
+    if (GlobalVariables.PhantomRushGainQueue > 0)
+    {
+        pBlackboardBattle->PhantomRushAmount += (25f + phantomRushDrainAmount) * DeltaTime;
+        GlobalVariables.PhantomRushGainQueue -= (25f + phantomRushDrainAmount) * DeltaTime;
+    }
+
+    if (GlobalVariables.PhantomRushIncreaseQueue < 0)
+        GlobalVariables.PhantomRushIncreaseQueue = 0;
+
+    if (GlobalVariables.PhantomRushDecreaseQueue < 0) 
+        GlobalVariables.PhantomRushDecreaseQueue = 0;
+
+    if (GlobalVariables.PhantomRushGainQueue < 0)
+        GlobalVariables.PhantomRushGainQueue = 0;
+
+        if (GlobalVariables.RingIncreaseQueue > 0)
+    {
+        RingIncreaseTimer += DeltaTime;
+        if (RingIncreaseTimer >= 0.1f)
+        {
+            if (pBlackboardItem->RingCount < pBlackboardItem->RingCapacity && GlobalVariables.RingDecreaseQueue <= 0)
+            {
+                Player.Sound.PlaySound("obj_ring");
+                Player.Effect.PlayEffect("Rank Ring", "ef_ob_ring_get01");
+                pBlackboardItem->RingCount += 1;
+            }
+            RingIncreaseTimer = 0;
+            GlobalVariables.RingIncreaseQueue -= 1;
+        }
+    }
+    else
+    {
+        RingIncreaseTimer = 0;
+    }
+
+    if (GlobalVariables.RingDecreaseQueue > 0)
+    {
+        RingDecreaseTimer += DeltaTime;
+        if (RingDecreaseTimer >= 0.1f)
+        {
+            if (pBlackboardItem->RingCount > 0 && GlobalVariables.RingIncreaseQueue <= 0)
+            {
+                // TODO: find the actual sound for thislol
+                //Player.Sound.PlaySound("sn_ringloss");
+                pBlackboardItem->RingCount -= 1;
+            }
+            RingDecreaseTimer = 0;
+            GlobalVariables.RingDecreaseQueue -= 1;
+        }
+    }
+    else
+    {
+        RingDecreaseTimer = 0;
+    }
+
+    if (Points < 1)
+        return;
+
+    Points += GlobalVariables.RankPointsIncrease;
+    GlobalVariables.RankPointsIncrease = 0;
+
+    if (Lua.GetState() == 0)
+        return;
+
+    Get_Rank();
+
+    if (ObtainedRank != LastObtainedRank)
+        UpdateRank = true;
+
+    if (UpdateRank)
+    {
+        bool isRankDown = LastObtainedRank > ObtainedRank;
+
+        Get_Rank();
+
+        LastObtainedRank = ObtainedRank;
+
+        string Text = ComboRankText;
+        string RankText = RankNames[ObtainedRank];
+
+        UpdateRank = false;
+
+        if (isBoss)
+        {
+            Text = CombatRankText;
+            RankText = RankNamesSS[ObtainedRank];
+        }
+
+        if (isRankDown)
+            GlobalVariables.RingDecreaseQueue += (int)RingsPerRank * ObtainedRank;
+        else
+            GlobalVariables.RingIncreaseQueue += (int)RingsPerRank * ObtainedRank;
+
+        // display hud element, thanks gordon for saving this mechanic...
+        Lua.Call("ClearUserGuidUI");
+        Converse.Redirect("tu2000_110", Text + RankText);
+        Lua.Call("ShowUserGuidUI", "Cyloop");
+    }
+
+}

@@ -1,0 +1,374 @@
+Code "Move Changes" by "thej01"
+//
+    #include "Reflection" noemit
+
+    #lib "SonicParameters"
+    #lib "Reflection"
+    #lib "INIHelpers"
+    #lib "GlobalVariables"
+    #lib "Player"
+
+    static bool IsInitialised = false;
+
+    static float DropKickDownwardVelocity = -30;
+    static float DropKickForwardVelocity = 0;
+
+    static float Basic1ForwardKnockback = 1.5f;
+    static float Basic2ForwardKnockback = 1.75f;
+
+    static float Basic1DownwardKnockback = 0;
+    static float Basic2DownwardKnockback = 0;
+
+    static float StompAttackSlowRatio = 1;
+
+    static float StompBarrageDamageRate = 0.2f;
+    static float StompBarrageDamageRateSS = 4f;
+
+    static float StompBarrageAddComboValue = 1;
+    static float StompBarrageAddComboValueAccele = 2;
+    static float StompBarrageAddComboValueSS = 1;
+    static float StompBarrageAddComboValueAcceleSS = 2;
+    static float StompBarrageAddQuickCyloopEnergy = 1;
+    static float StompBarrageAddQuickCyloopEnergyAccele = 1;
+    static float StompBarrageAddQuickCyloopEnergySS = 1;
+    static float StompBarrageAddQuickCyloopEnergyAcceleSS = 1;
+    static float StompBarrageAddQuickCyloopEnergyGuard = 1;
+    static float StompBarrageAddQuickCyloopEnergyAcceleGuard = 1;
+
+    static float QuickCyloopDrain = 30;
+
+    static float SonicBoomSlowRatio = 1;
+
+    static float WildRushStart = 0.098f;
+    static float WildRushEnd = 0.098f;
+
+    static float SpinSlashCharge = 0.2f;
+    static float SpinSlashBounce = 0.4f;
+    static float SpinSlashSlowRatio0 = 1;
+    static float SpinSlashSlowRatio1 = 1;
+
+    static float KickSpeed = 160f;
+    static float LoopEndSpeed = 60f;
+    static float LoopTime = 0.5f;
+
+    static float HomingShotChargeTime = 0.55f;
+    static float HomingShotLaunchWaitTime = 0.7f;
+    static float HomingShotWhiteoutBegin = 999f;
+    static float HomingShotMaxSpeed = 50f;
+    static float HomingShotSpanTimeSS = 0.01f;
+    static string HomingShotCamera = "CrossSlash";
+    static int HomingShotNum = 8;
+    static int HomingShotNumSS = 10;
+    static bool HomingShotRandomizeLaunchSS = true;
+
+    static float CrossSlashSpinSpeed = 1500;
+    static float CrossSlashAttackTime = 0.8f;
+    static float CrossSlashAttackAngle = -360;
+    static float CrossSlashSpinSpeedBoss = 1080;
+    static float CrossSlashAttackAngleBoss = -90;
+    static float CrossSlashSlowRatio = 1;
+
+    static float CycloneKickRiseTime = 1;
+    static float CycloneKickRiseDistance = 20;
+    static float CycloneKickPreRiseDistance = 2.5f;
+    static float CycloneKickRiseSlowRatio = 1;
+
+    static float CycloneKickYVelocity = 20;
+
+    var SonicParametersInfo = Reflection.GetDataInfo<SonicParameters.Root>("player_common");
+//
+{
+    static void Init_Difficulty()
+    {
+        string LoadResult = "";
+        LoadResult = INIHelpers.LoadINI(GlobalVariables.ModName, @"\\properties\\" + GlobalVariables.CurrentDifficulty + "\\moves.ini");
+
+        if (LoadResult == "ModNotFound" || LoadResult == "ININotFound")
+            return;
+
+        Basic1ForwardKnockback = INIHelpers.Parse.Float("BasicCombo", "Basic1ForwardKnockback");
+        Basic1DownwardKnockback = INIHelpers.Parse.Float("BasicCombo", "Basic1DownwardKnockback");
+
+        Basic2ForwardKnockback = INIHelpers.Parse.Float("BasicCombo", "Basic2ForwardKnockback");
+        Basic2DownwardKnockback = INIHelpers.Parse.Float("BasicCombo", "Basic2DownwardKnockback");
+
+        DropKickDownwardVelocity = INIHelpers.Parse.Float("ComboFinishers", "DropKickDownwardVelocity");
+        DropKickForwardVelocity = INIHelpers.Parse.Float("ComboFinishers", "DropKickForwardVelocity");
+
+        StompAttackSlowRatio = INIHelpers.Parse.Float("StompAttack", "SlowRatio");
+
+        StompBarrageDamageRate = INIHelpers.Parse.Float("StompBarrage", "DamageRate");
+        StompBarrageDamageRateSS = INIHelpers.Parse.Float("StompBarrage", "DamageRateSS");
+
+        StompBarrageAddComboValue = INIHelpers.Parse.Float("StompBarrage", "AddComboValue");
+        StompBarrageAddComboValueAccele = INIHelpers.Parse.Float("StompBarrage", "AddComboValueAccele");
+        StompBarrageAddComboValueSS = INIHelpers.Parse.Float("StompBarrage", "AddComboValueSS");
+        StompBarrageAddComboValueAcceleSS = INIHelpers.Parse.Float("StompBarrage", "AddComboValueAcceleSS");
+        StompBarrageAddQuickCyloopEnergy = INIHelpers.Parse.Float("StompBarrage", "AddQuickCyloopEnergy");
+        StompBarrageAddQuickCyloopEnergyAccele = INIHelpers.Parse.Float("StompBarrage", "AddQuickCyloopEnergyAccele");
+        StompBarrageAddQuickCyloopEnergySS = INIHelpers.Parse.Float("StompBarrage", "AddQuickCyloopEnergySS");
+        StompBarrageAddQuickCyloopEnergyAcceleSS = INIHelpers.Parse.Float("StompBarrage", "AddQuickCyloopEnergyAcceleSS");
+        StompBarrageAddQuickCyloopEnergyGuard = INIHelpers.Parse.Float("StompBarrage", "AddQuickCyloopEnergyGuard");
+        StompBarrageAddQuickCyloopEnergyAcceleGuard = INIHelpers.Parse.Float("StompBarrage", "AddQuickCyloopEnergyAcceleGuard");
+
+        QuickCyloopDrain = INIHelpers.Parse.Float("QuickCyloop", "DecreaseAmount");
+
+        SonicBoomSlowRatio = INIHelpers.Parse.Float("SonicBoom", "SlowRatio");
+
+        WildRushStart = INIHelpers.Parse.Float("WildRush", "StartTime");
+        WildRushEnd = INIHelpers.Parse.Float("WildRush", "EndTime");
+
+        SpinSlashCharge = INIHelpers.Parse.Float("SpinSlash", "ChargeTime");
+        SpinSlashBounce = INIHelpers.Parse.Float("SpinSlash", "BounceTime");
+        SpinSlashSlowRatio0 = INIHelpers.Parse.Float("SpinSlash", "SlowRatio0");
+        SpinSlashSlowRatio1 = INIHelpers.Parse.Float("SpinSlash", "SlowRatio1");
+
+        KickSpeed = INIHelpers.Parse.Float("LoopKick", "KickSpeed");
+        LoopEndSpeed = INIHelpers.Parse.Float("LoopKick", "LoopEndSpeed");
+        LoopTime = INIHelpers.Parse.Float("LoopKick", "LoopTime");
+
+        HomingShotChargeTime = INIHelpers.Parse.Float("HomingShot", "ChargeTime");
+        HomingShotLaunchWaitTime = INIHelpers.Parse.Float("HomingShot", "LaunchWaitTime");
+        HomingShotWhiteoutBegin = INIHelpers.Parse.Float("HomingShot", "WhiteoutBegin");
+        HomingShotMaxSpeed = INIHelpers.Parse.Float("HomingShot", "ShotMaxSpeed");
+        HomingShotSpanTimeSS = INIHelpers.Parse.Float("HomingShot", "SpanTimeSS");
+        HomingShotCamera = INIHelpers.Parse.String("HomingShot", "Camera");
+        HomingShotNum = INIHelpers.Parse.Int("HomingShot", "ShotNum");
+        HomingShotNumSS = INIHelpers.Parse.Int("HomingShot", "ShotNumSS");
+        HomingShotRandomizeLaunchSS = INIHelpers.Parse.Bool("HomingShot", "RandomizeLaunchSS");
+
+        CrossSlashSpinSpeed = INIHelpers.Parse.Float("CrossSlash", "SpinSpeed");
+        CrossSlashAttackTime = INIHelpers.Parse.Float("CrossSlash", "AttackTime");
+        CrossSlashAttackAngle = INIHelpers.Parse.Float("CrossSlash", "AttackAngle");
+        CrossSlashSpinSpeedBoss = INIHelpers.Parse.Float("CrossSlash", "SpinSpeedBoss");
+        CrossSlashAttackAngleBoss = INIHelpers.Parse.Float("CrossSlash", "AttackAngleBoss");
+        CrossSlashSlowRatio = INIHelpers.Parse.Float("CrossSlash", "SlowRatio");
+
+        CycloneKickRiseTime = INIHelpers.Parse.Float("CycloneKick", "RiseTime");
+        CycloneKickRiseDistance = INIHelpers.Parse.Float("CycloneKick", "RiseDistance");
+        CycloneKickPreRiseDistance = INIHelpers.Parse.Float("CycloneKick", "PreRiseDistance");
+        CycloneKickRiseSlowRatio = INIHelpers.Parse.Float("CycloneKick", "SlowRatio");
+
+        CycloneKickYVelocity = INIHelpers.Parse.Float("CycloneKick", "UpwardKnockback");
+    }
+
+    if (!IsInitialised || GlobalVariables.UpdateForever)
+    {
+        IsInitialised = true;
+        Init_Difficulty();
+    }
+
+    if (GlobalVariables.DifficultyJustChanged)
+        Init_Difficulty();
+
+    if (Player.GetPlayerType() != Player.PlayerType.Sonic)
+        return;
+
+    if (SonicParametersInfo.pData == null)
+        return;
+
+    bool isBoss = Player.State.GetStatePlugin("StatePluginBossBattle") != null;
+
+    if (GlobalVariables.IsPhantomRushActive)
+    {
+        // remove knockback for 1234 combo on phantomrush
+
+        RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.accele1.velocity.Z, 0);
+        RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.accele1.velocity.Y, 0);
+
+        RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.accele2.velocity.Z, 0);
+        RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.accele2.velocity.Y, 0);
+
+        RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.aerialAccele1.velocity.Z, 0);
+        RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.aerialAccele1.velocity.Y, 0);
+
+        RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.aerialAccele2.velocity.Z, 0);
+        RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.aerialAccele2.velocity.Y, 0);
+    }
+    else
+    {
+        // knockback for 1234 combo
+
+        RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.accele1.velocity.Z, Basic1ForwardKnockback);
+        RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.accele1.velocity.Y, Basic1DownwardKnockback);
+
+        RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.accele2.velocity.Z, Basic2ForwardKnockback);
+        RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.accele2.velocity.Y, Basic2DownwardKnockback);
+
+        RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.aerialAccele1.velocity.Z, Basic1ForwardKnockback);
+        RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.aerialAccele1.velocity.Y, Basic1DownwardKnockback);
+
+        RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.aerialAccele2.velocity.Z, Basic2ForwardKnockback);
+        RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.aerialAccele2.velocity.Y, Basic2DownwardKnockback);
+    }
+
+    // combo finish downward knockback
+
+    RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.comboFinishB.velocity.Y, DropKickDownwardVelocity);
+    RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.comboFinishB.velocity.Z, DropKickForwardVelocity);
+
+    RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.acceleComboFinishB.velocity.Y, DropKickDownwardVelocity);
+    RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.acceleComboFinishB.velocity.Z, DropKickForwardVelocity);
+
+    // stomp attack timespeed
+
+    RFL_SET_PARAM(SonicParametersInfo, common.stompingAttackSet.sonic.slowRatio, StompAttackSlowRatio);
+
+    RFL_SET_PARAM(SonicParametersInfo, common.stompingAttackSet.superSonic1.slowRatio, StompAttackSlowRatio);
+
+    RFL_SET_PARAM(SonicParametersInfo, common.stompingAttackSet.superSonic2.slowRatio, StompAttackSlowRatio);
+
+    // stomp barrage damage
+
+    RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.stompingAttack.damageRate, StompBarrageDamageRate);
+    RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.stompingAttack.damageRateSS, StompBarrageDamageRateSS);
+
+    // stomp barrage phantom rush and cyloop gain
+
+    RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.stompingAttack.addComboValue, StompBarrageAddComboValue);
+    RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.stompingAttack.addComboValueAccele, StompBarrageAddComboValueAccele);
+    RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.stompingAttack.addComboValueSS, StompBarrageAddComboValueSS);
+    RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.stompingAttack.addComboValueAcceleSS, StompBarrageAddComboValueAcceleSS);
+    RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.stompingAttack.addQuickCyloopEnergy, StompBarrageAddQuickCyloopEnergy);
+    RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.stompingAttack.addQuickCyloopEnergyAccele, StompBarrageAddQuickCyloopEnergyAccele);
+    RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.stompingAttack.addQuickCyloopEnergySS, StompBarrageAddQuickCyloopEnergyAcceleSS);
+    RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.stompingAttack.addQuickCyloopEnergyAcceleSS, StompBarrageAddQuickCyloopEnergyAcceleSS);
+    RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.stompingAttack.addQuickCyloopEnergyGuard, StompBarrageAddQuickCyloopEnergyGuard);
+    RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.stompingAttack.addQuickCyloopEnergyAcceleGuard, StompBarrageAddQuickCyloopEnergyAcceleGuard);
+
+    // quick cyloop drain
+
+    RFL_SET_PARAM(SonicParametersInfo, common.cyloop.lossQuickCyloopEnergy, QuickCyloopDrain);
+
+    // sonic boom timespeed
+
+    RFL_SET_PARAM(SonicParametersInfo, common.sonicboomSet.sonic.slowRatio, SonicBoomSlowRatio);
+
+    RFL_SET_PARAM(SonicParametersInfo, common.sonicboomSet.superSonic1.slowRatio, SonicBoomSlowRatio);
+
+    RFL_SET_PARAM(SonicParametersInfo, common.sonicboomSet.superSonic2.slowRatio, SonicBoomSlowRatio);
+
+    // wild rush speed
+
+    RFL_SET_PARAM(SonicParametersInfo, common.crasherSet.sonic.zigzagBeginOneStepTime, WildRushStart);
+    RFL_SET_PARAM(SonicParametersInfo, common.crasherSet.sonic.zigzagEndOneStepTime, WildRushEnd);
+
+    RFL_SET_PARAM(SonicParametersInfo, common.crasherSet.superSonic1.zigzagBeginOneStepTime, WildRushStart);
+    RFL_SET_PARAM(SonicParametersInfo, common.crasherSet.superSonic1.zigzagEndOneStepTime, WildRushEnd);
+
+    RFL_SET_PARAM(SonicParametersInfo, common.crasherSet.superSonic2.zigzagBeginOneStepTime, WildRushStart);
+    RFL_SET_PARAM(SonicParametersInfo, common.crasherSet.superSonic2.zigzagEndOneStepTime, WildRushEnd);
+
+    // spinslash speed and timespeed
+
+    RFL_SET_PARAM(SonicParametersInfo, common.spinSlashSet.sonic.chargeTime, SpinSlashCharge);
+    RFL_SET_PARAM(SonicParametersInfo, common.spinSlashSet.sonic.bounceTime, SpinSlashBounce);
+    RFL_SET_PARAM(SonicParametersInfo, common.spinSlashSet.sonic.slowRatio0, SpinSlashSlowRatio0);
+    RFL_SET_PARAM(SonicParametersInfo, common.spinSlashSet.sonic.slowRatio1, SpinSlashSlowRatio1);
+
+    RFL_SET_PARAM(SonicParametersInfo, common.spinSlashSet.superSonic1.chargeTime, SpinSlashCharge);
+    RFL_SET_PARAM(SonicParametersInfo, common.spinSlashSet.superSonic1.bounceTime, SpinSlashBounce);
+    RFL_SET_PARAM(SonicParametersInfo, common.spinSlashSet.superSonic1.slowRatio0, SpinSlashSlowRatio0);
+    RFL_SET_PARAM(SonicParametersInfo, common.spinSlashSet.superSonic1.slowRatio1, SpinSlashSlowRatio1);
+
+    RFL_SET_PARAM(SonicParametersInfo, common.spinSlashSet.superSonic2.chargeTime, SpinSlashCharge);
+    RFL_SET_PARAM(SonicParametersInfo, common.spinSlashSet.superSonic2.bounceTime, SpinSlashBounce);
+    RFL_SET_PARAM(SonicParametersInfo, common.spinSlashSet.superSonic2.slowRatio0, SpinSlashSlowRatio0);
+    RFL_SET_PARAM(SonicParametersInfo, common.spinSlashSet.superSonic2.slowRatio1, SpinSlashSlowRatio1);
+
+    // loop kick speed
+
+    RFL_SET_PARAM(SonicParametersInfo, common.loopKickSet.sonic.kickSpeed, KickSpeed);
+    RFL_SET_PARAM(SonicParametersInfo, common.loopKickSet.sonic.loopEndSpeed, LoopEndSpeed);
+    RFL_SET_PARAM(SonicParametersInfo, common.loopKickSet.sonic.loopTime, LoopTime);
+
+    RFL_SET_PARAM(SonicParametersInfo, common.loopKickSet.superSonic1.kickSpeed, KickSpeed);
+    RFL_SET_PARAM(SonicParametersInfo, common.loopKickSet.superSonic1.loopEndSpeed, LoopEndSpeed);
+    RFL_SET_PARAM(SonicParametersInfo, common.loopKickSet.superSonic1.loopTime, LoopTime);
+
+    RFL_SET_PARAM(SonicParametersInfo, common.loopKickSet.superSonic2.kickSpeed, KickSpeed);
+    RFL_SET_PARAM(SonicParametersInfo, common.loopKickSet.superSonic2.loopEndSpeed, LoopEndSpeed);
+    RFL_SET_PARAM(SonicParametersInfo, common.loopKickSet.superSonic2.loopTime, LoopTime);
+
+    // homing shot speed, camera, whiteout, and shot number
+
+    RFL_SET_PARAM(SonicParametersInfo, common.homingShotSet.sonic.chargeTime, HomingShotChargeTime);
+    RFL_SET_PARAM(SonicParametersInfo, common.homingShotSet.sonic.launchWaitTime, HomingShotLaunchWaitTime);
+    RFL_SET_PARAM(SonicParametersInfo, common.homingShotSet.sonic.numShots, (byte)HomingShotNum);
+    RFL_SET_PARAM(SonicParametersInfo, common.homingShotSet.sonic.whiteoutBeginTime, HomingShotWhiteoutBegin);
+    RFL_SET_PARAM(SonicParametersInfo, common.homingShotSet.sonic.cameraName, HomingShotCamera);
+    RFL_SET_PARAM(SonicParametersInfo, common.homingShotSet.sonic.maxSpeed, HomingShotMaxSpeed);
+
+    RFL_SET_PARAM(SonicParametersInfo, common.homingShotSet.superSonic1.chargeTime, HomingShotChargeTime);
+    RFL_SET_PARAM(SonicParametersInfo, common.homingShotSet.superSonic1.launchWaitTime, HomingShotLaunchWaitTime);
+    RFL_SET_PARAM(SonicParametersInfo, common.homingShotSet.superSonic1.numShots, (byte)HomingShotNumSS);
+    RFL_SET_PARAM(SonicParametersInfo, common.homingShotSet.superSonic1.launchRandomize, HomingShotRandomizeLaunchSS);
+    RFL_SET_PARAM(SonicParametersInfo, common.homingShotSet.superSonic1.spanTime, HomingShotSpanTimeSS);
+    RFL_SET_PARAM(SonicParametersInfo, common.homingShotSet.superSonic1.whiteoutBeginTime, HomingShotWhiteoutBegin);
+    RFL_SET_PARAM(SonicParametersInfo, common.homingShotSet.superSonic1.cameraName, HomingShotCamera);
+    RFL_SET_PARAM(SonicParametersInfo, common.homingShotSet.superSonic1.maxSpeed, HomingShotMaxSpeed);
+
+    RFL_SET_PARAM(SonicParametersInfo, common.homingShotSet.superSonic2.chargeTime, HomingShotChargeTime);
+    RFL_SET_PARAM(SonicParametersInfo, common.homingShotSet.superSonic2.launchWaitTime, HomingShotLaunchWaitTime);
+    RFL_SET_PARAM(SonicParametersInfo, common.homingShotSet.superSonic2.numShots, (byte)HomingShotNumSS);
+    RFL_SET_PARAM(SonicParametersInfo, common.homingShotSet.superSonic2.launchRandomize, HomingShotRandomizeLaunchSS);
+    RFL_SET_PARAM(SonicParametersInfo, common.homingShotSet.superSonic2.spanTime, HomingShotSpanTimeSS);
+    RFL_SET_PARAM(SonicParametersInfo, common.homingShotSet.superSonic2.whiteoutBeginTime, HomingShotWhiteoutBegin);
+    RFL_SET_PARAM(SonicParametersInfo, common.homingShotSet.superSonic2.cameraName, HomingShotCamera);
+    RFL_SET_PARAM(SonicParametersInfo, common.homingShotSet.superSonic2.maxSpeed, HomingShotMaxSpeed);
+
+    // cross slash speed, angle, and timespeed
+
+    RFL_SET_PARAM(SonicParametersInfo, common.crossSlashSet.sonic.spinSpeed, CrossSlashSpinSpeed);
+    RFL_SET_PARAM(SonicParametersInfo, common.crossSlashSet.sonic.attackTime, CrossSlashAttackTime);
+    RFL_SET_PARAM(SonicParametersInfo, common.crossSlashSet.sonic.moveAngle, CrossSlashAttackAngle);
+    RFL_SET_PARAM(SonicParametersInfo, common.crossSlashSet.sonic.slowRatio, CrossSlashSlowRatio);
+
+    if (!isBoss)
+    {
+        // angle for open world
+
+        RFL_SET_PARAM(SonicParametersInfo, common.crossSlashSet.superSonic1.moveAngle, CrossSlashAttackAngle);
+        RFL_SET_PARAM(SonicParametersInfo, common.crossSlashSet.superSonic1.spinSpeed, CrossSlashSpinSpeed);
+
+        RFL_SET_PARAM(SonicParametersInfo, common.crossSlashSet.superSonic2.spinSpeed, CrossSlashSpinSpeed);
+        RFL_SET_PARAM(SonicParametersInfo, common.crossSlashSet.superSonic2.moveAngle, CrossSlashAttackAngle);
+    }
+    else
+    {
+        // angle for titan fights
+
+        RFL_SET_PARAM(SonicParametersInfo, common.crossSlashSet.superSonic1.spinSpeed, CrossSlashSpinSpeedBoss);
+        RFL_SET_PARAM(SonicParametersInfo, common.crossSlashSet.superSonic1.moveAngle, CrossSlashAttackAngleBoss);
+
+        RFL_SET_PARAM(SonicParametersInfo, common.crossSlashSet.superSonic2.spinSpeed, CrossSlashSpinSpeedBoss);
+        RFL_SET_PARAM(SonicParametersInfo, common.crossSlashSet.superSonic2.moveAngle, CrossSlashAttackAngleBoss);
+    }
+
+    RFL_SET_PARAM(SonicParametersInfo, common.crossSlashSet.superSonic1.attackTime, CrossSlashAttackTime);
+    RFL_SET_PARAM(SonicParametersInfo, common.crossSlashSet.superSonic1.slowRatio, CrossSlashSlowRatio);
+
+    RFL_SET_PARAM(SonicParametersInfo, common.crossSlashSet.superSonic2.attackTime, CrossSlashAttackTime);
+    RFL_SET_PARAM(SonicParametersInfo, common.crossSlashSet.superSonic2.slowRatio, CrossSlashSlowRatio);
+
+    // cyclone kick speed, and height
+
+    RFL_SET_PARAM(SonicParametersInfo, common.chargeAtackSet.sonic.riseTime, CycloneKickRiseTime);
+    RFL_SET_PARAM(SonicParametersInfo, common.chargeAtackSet.sonic.riseDistance, CycloneKickRiseDistance);
+    RFL_SET_PARAM(SonicParametersInfo, common.chargeAtackSet.sonic.preRiseDistance, CycloneKickPreRiseDistance);
+    RFL_SET_PARAM(SonicParametersInfo, common.chargeAtackSet.sonic.riseSlowRatio, CycloneKickRiseSlowRatio);
+
+    RFL_SET_PARAM(SonicParametersInfo, common.chargeAtackSet.superSonic1.riseTime, CycloneKickRiseTime);
+    RFL_SET_PARAM(SonicParametersInfo, common.chargeAtackSet.superSonic1.riseDistance, CycloneKickRiseDistance);
+    RFL_SET_PARAM(SonicParametersInfo, common.chargeAtackSet.superSonic1.preRiseDistance, CycloneKickPreRiseDistance);
+    RFL_SET_PARAM(SonicParametersInfo, common.chargeAtackSet.superSonic1.riseSlowRatio, CycloneKickRiseSlowRatio);
+
+    RFL_SET_PARAM(SonicParametersInfo, common.chargeAtackSet.superSonic2.riseTime, CycloneKickRiseTime);
+    RFL_SET_PARAM(SonicParametersInfo, common.chargeAtackSet.superSonic2.riseDistance, CycloneKickRiseDistance);
+    RFL_SET_PARAM(SonicParametersInfo, common.chargeAtackSet.superSonic2.preRiseDistance, CycloneKickPreRiseDistance);
+    RFL_SET_PARAM(SonicParametersInfo, common.chargeAtackSet.superSonic2.riseSlowRatio, CycloneKickRiseSlowRatio);
+
+    // cyclone kick knockback
+
+    RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.chargeAttack.velocity.Y, CycloneKickYVelocity);
+} 

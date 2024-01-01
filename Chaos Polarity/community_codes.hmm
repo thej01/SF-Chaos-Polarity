@@ -1,0 +1,1476 @@
+
+// Hyper's codes
+/*Patch "Disable Hit Stop" in "Gameplay" by "Hyper" does "Disables the slow motion effect after performing attacks." 
+{
+    WriteAsmHook
+    (
+        $@"
+            xorps  xmm3, xmm3
+            movaps xmm7, xmm3
+            mov    r8, [rcx + 0xB0]
+            mov    esi, edx
+            add    rax, r8
+        ",
+
+        /* 0x147689E7F *//*
+        ScanSignature
+        (
+            "\x0F\x28\xFB\x4C\x8B\x81\xB0\x00\x00\x00",
+            "xxxxxxxxxx"
+        ),
+
+        HookBehavior.Replace
+    );
+}*/
+
+Patch "Disable Spin Charge Camera" in "Camera" by "Hyper" does 
+/*
+Disables the zoom camera when charging a Spin Dash.
+
+Notes;
+- It is recommended that you use this with Increased Spin Charge Rotation Speed.
+*/
+{
+    WriteNop
+    (
+        /* 0x1408A67DC */
+        ScanSignature
+        (
+            "\xE8\xCC\xCC\xCC\xCC\x48\x8B\xCF\xBB\x24\x00\x00\x00",
+            "x????xxxxxxxx"
+        ),
+
+        5
+    );
+}
+
+Code "0000009 Combo UI Fix" by "Hyper & modified by thej01"
+//
+    #lib "BlackboardBattle"
+//
+{
+    var pBlackboardBattle = BlackboardBattle.Get();
+
+    if (pBlackboardBattle == null)
+        return;
+
+    if (pBlackboardBattle->ComboCount == 0)
+        pBlackboardBattle->ComboCount = 1;
+
+    if (pBlackboardBattle->ComboCount <= 1)
+        pBlackboardBattle->PhantomRushAmount = 0;
+}
+
+// KirbyKrew's codes
+
+Code "Stomp Barrage Restoration" by "KirbyKrew661 & modified by thej01"
+//
+    #lib "Player"
+    #lib "Sonic"
+    #lib "GlobalVariables"
+    #lib "INIHelpers"
+
+    static bool IsInitialised = false;
+    static bool IsEnabled = true;
+
+    static void Init_Difficulty()
+    {
+        string LoadResult = "";
+        LoadResult = INIHelpers.LoadINI(GlobalVariables.ModName, @"\\properties\\" + GlobalVariables.CurrentDifficulty + "\\moves.ini");
+
+        if (LoadResult == "ModNotFound" || LoadResult == "ININotFound")
+            return;
+
+        IsEnabled = INIHelpers.Parse.Bool("StompBarrage", "IsEnabled");
+    }
+//
+{
+    if (Player.GetPlayerType() != Player.PlayerType.Sonic)
+        return;
+
+    if (!IsInitialised || GlobalVariables.UpdateForever)
+    {
+        IsInitialised = true;
+        Init_Difficulty();
+    }
+
+    if (GlobalVariables.DifficultyJustChanged)
+        Init_Difficulty();
+
+    if (!IsEnabled)
+        return;
+
+    if (Player.State.GetPreviousStateID<Sonic.StateID>() == Sonic.StateID.StateStompingDown && Player.Input.IsPressed(Player.InputActionType.PlayerStomping))
+        Player.State.SetState<Sonic.StateID>(Sonic.StateID.StateStompingAttack);
+}
+
+// this library provided by datsquishyfello via RFL2HMM
+
+Library "GameHitStopParameter"
+{
+    #load "System.Numerics.dll"
+
+    using System.Numerics;
+    using System.Runtime.InteropServices;
+
+    [StructLayout(LayoutKind.Explicit, Size = 8)]
+    public struct UnmanagedString
+    {
+        [FieldOffset(0)] public long pValue;
+
+        public string Value
+        {
+            get
+            {
+                if (pValue == 0)
+                    return string.Empty;
+
+                return Marshal.PtrToStringAnsi((nint)pValue);
+            }
+
+            set => pValue = (long)Marshal.StringToHGlobalAnsi(value);
+        }
+
+        public UnmanagedString(string in_value)
+        {
+            Value = in_value;
+        }
+
+        public static implicit operator UnmanagedString(string in_value)
+        {
+            return new UnmanagedString(in_value);
+        }
+
+        public static bool operator ==(UnmanagedString in_left, string in_right)
+        {
+            return in_left.Value == in_right;
+        }
+
+        public static bool operator !=(UnmanagedString in_left, string in_right)
+        {
+            return !(in_left == in_right);
+        }
+
+        public override bool Equals(object in_obj)
+        {
+            if (in_obj is string str)
+                return Value == str;
+
+            return base.Equals(in_obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return Value.GetHashCode();
+        }
+
+        public override string ToString()
+        {
+            return Value;
+        }
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x28)]
+    public struct GameHitStopParameterData
+    {
+        [FieldOffset(0x00)] public UnmanagedString name;
+        [FieldOffset(0x10)] public float scale;
+        [FieldOffset(0x14)] public float time;
+        [FieldOffset(0x18)] public float easeOutTime;
+        [FieldOffset(0x1C)] public float delayTime;
+        [FieldOffset(0x20)] public bool layerPlayer;
+        [FieldOffset(0x21)] public bool layerEnemy;
+        [FieldOffset(0x22)] public bool layerDamagedEnemy;
+        [FieldOffset(0x23)] public bool layerCamera;
+        [FieldOffset(0x24)] public bool layerOthers;
+    }
+
+
+    [StructLayout(LayoutKind.Explicit, Size = 0xA00)]
+    public struct Root
+    {
+        [FieldOffset(0x00)] public unsafe fixed byte /* GameHitStopParameterData[64] */ _data[2560];
+
+        public unsafe GameHitStopParameterData* data
+        {
+            get
+            {
+                fixed (byte* p_data = _data)
+                    return (GameHitStopParameterData*)p_data;
+            }
+        }
+    }
+}
+
+// Unknown, Hyper i think
+
+Library "BossRifleBeastConfig"
+{
+    #load "System.Numerics.dll"
+
+    using System.Numerics;
+    using System.Runtime.InteropServices;
+
+    public struct CSetObjectID
+    {
+        public unsafe fixed byte GUID[16];
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 32)]
+    public struct CSetObjectIDArray
+    {
+        [FieldOffset(0)] public long pData;
+        [FieldOffset(8)] public long Size;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 8)]
+    public struct UnmanagedString
+    {
+        [FieldOffset(0)] public long pValue;
+
+        public string Value
+        {
+            get
+            {
+                if (pValue == 0)
+                    return string.Empty;
+
+                return Marshal.PtrToStringAnsi((nint)pValue);
+            }
+
+            set => pValue = (long)Marshal.StringToHGlobalAnsi(value);
+        }
+
+        public UnmanagedString(string in_value)
+        {
+            Value = in_value;
+        }
+
+        public static implicit operator UnmanagedString(string in_value)
+        {
+            return new UnmanagedString(in_value);
+        }
+
+        public static bool operator ==(UnmanagedString in_left, string in_right)
+        {
+            return in_left.Value == in_right;
+        }
+
+        public static bool operator !=(UnmanagedString in_left, string in_right)
+        {
+            return !(in_left == in_right);
+        }
+
+        public override bool Equals(object in_obj)
+        {
+            if (in_obj is string str)
+                return Value == str;
+
+            return base.Equals(in_obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return Value.GetHashCode();
+        }
+
+        public override string ToString()
+        {
+            return Value;
+        }
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x58)]
+    public struct PlayerMoveableRangeParam
+    {
+        [FieldOffset(0x00)] public CSetObjectIDArray initPositions;
+        [FieldOffset(0x20)] public UnmanagedString heightTargetNodeName;
+        [FieldOffset(0x30)] public float heightMoveSpeed;
+        [FieldOffset(0x34)] public float bossToPlayerDistanceMin;
+        [FieldOffset(0x38)] public float bossToPlayerDistanceMax;
+        [FieldOffset(0x3C)] public float offsetHeightMin;
+        [FieldOffset(0x40)] public float offsetHeightMax;
+        [FieldOffset(0x44)] public float areaDistanceMin;
+        [FieldOffset(0x48)] public float areaDistanceMax;
+        [FieldOffset(0x4C)] public float playerSpawnDistance;
+        [FieldOffset(0x50)] public float playerRespawnDistance;
+        [FieldOffset(0x54)] public float playerRespawnDistance2;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x08)]
+    public struct BossPhaseParam
+    {
+        [FieldOffset(0x00)] public bool isUse;
+        [FieldOffset(0x01)] public bool isUsePillar;
+        [FieldOffset(0x04)] public float phaseChangeHpRatio;
+    }
+
+    public enum EaseType : sbyte
+    {
+        ET_Sin = 0,
+        ET_Cubic = 1,
+        ET_Quadratic = 2
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x70)]
+    public struct BossLockOnCameraParam
+    {
+        [FieldOffset(0x00)] public float easeTime;
+        [FieldOffset(0x04)] public EaseType easeType;
+        [FieldOffset(0x08)] public UnmanagedString mainLookAtNodeName;
+        [FieldOffset(0x20)] public Vector3 mainLookOffsetPos;
+        [FieldOffset(0x30)] public UnmanagedString subLookAtNodeName;
+        [FieldOffset(0x40)] public Vector3 subLookOffsetPos;
+        [FieldOffset(0x50)] public float distance;
+        [FieldOffset(0x60)] public Vector3 playerOffsetPos;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x1A0)]
+    public struct BossStatusConfig
+    {
+        [FieldOffset(0x00)] public uint healthPoint;
+        [FieldOffset(0x04)] public float stunTime;
+        [FieldOffset(0x08)] public unsafe fixed float maxStunPoint[3];
+        [FieldOffset(0x14)] public unsafe fixed float maxStaggerPoint[5];
+        [FieldOffset(0x28)] public ushort exp;
+        [FieldOffset(0x30)] public PlayerMoveableRangeParam moveRangeParam;
+        [FieldOffset(0x88)] public PlayerMoveableRangeParam cyloopDamageMoveRangeParam;
+        [FieldOffset(0xE0)] public unsafe fixed byte /* BossPhaseParam[8] */ _phaseParams[64];
+
+        public unsafe BossPhaseParam* phaseParams
+        {
+            get
+            {
+                fixed (byte* p_phaseParams = _phaseParams)
+                    return (BossPhaseParam*)p_phaseParams;
+            }
+        }
+
+        [FieldOffset(0x120)] public BossLockOnCameraParam cameraParam;
+        [FieldOffset(0x190)] public bool isDebugDraw;
+        [FieldOffset(0x194)] public uint debugDrawPhaseIndex;
+    }
+
+    public enum GimmickType : sbyte
+    {
+        GT_A = 0,
+        GT_B = 1,
+        GT_C = 2,
+        GT_D = 3,
+        GT_E = 4,
+        NUM_GIMMICK_TYPE = 5
+    }
+
+    public enum AttackType : sbyte
+    {
+        AT_A = 0,
+        AT_B = 1,
+        AT_C = 2,
+        AT_D = 3,
+        AT_E = 4,
+        NUM_ATTACK_TYPE = 5
+    }
+
+    public enum BossPillarParam_GimmickType : sbyte
+    {
+        BossPillarParam_GimmickType_GT_A = 0,
+        BossPillarParam_GimmickType_GT_B = 1,
+        BossPillarParam_GimmickType_GT_C = 2,
+        BossPillarParam_GimmickType_GT_D = 3,
+        BossPillarParam_GimmickType_GT_E = 4,
+        BossPillarParam_GimmickType_NUM_GIMMICK_TYPE = 5
+    }
+
+    public enum BossPillarParam_AttackType : sbyte
+    {
+        BossPillarParam_AttackType_AT_A = 0,
+        BossPillarParam_AttackType_AT_B = 1,
+        BossPillarParam_AttackType_AT_C = 2,
+        BossPillarParam_AttackType_AT_D = 3,
+        BossPillarParam_AttackType_AT_E = 4,
+        BossPillarParam_AttackType_NUM_ATTACK_TYPE = 5
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x1C)]
+    public struct BossPillarParam
+    {
+        [FieldOffset(0x00)] public bool isUse;
+        [FieldOffset(0x04)] public float gimmickPhaseTime;
+        [FieldOffset(0x08)] public float attackPhaseTime;
+        [FieldOffset(0x0C)] public bool isUnique;
+        [FieldOffset(0x0D)] public BossPillarParam_GimmickType gimmickType;
+        [FieldOffset(0x10)] public float gimmickIntervalTime;
+        [FieldOffset(0x14)] public BossPillarParam_AttackType attackType;
+        [FieldOffset(0x18)] public float attackIntervalTime;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x3B8)]
+    public struct BossPillarConfig
+    {
+        [FieldOffset(0x00)] public GimmickType gimmickTypeAll;
+        [FieldOffset(0x04)] public float gimmickIntervalTimeAll;
+        [FieldOffset(0x08)] public AttackType attackTypeAll;
+        [FieldOffset(0x0C)] public float attackIntervalTimeAll;
+        [FieldOffset(0x10)] public unsafe fixed byte /* BossPillarParam[32] */ _pillars[896];
+
+        public unsafe BossPillarParam* pillars
+        {
+            get
+            {
+                fixed (byte* p_pillars = _pillars)
+                    return (BossPillarParam*)p_pillars;
+            }
+        }
+
+        [FieldOffset(0x390)] public UnmanagedString spawnPositionName;
+        [FieldOffset(0x3A0)] public uint pillarHealthPoint;
+        [FieldOffset(0x3A4)] public uint pillarBreakDamage;
+        [FieldOffset(0x3A8)] public float pillarBreakStun;
+        [FieldOffset(0x3AC)] public bool isDebugDraw;
+        [FieldOffset(0x3B0)] public uint DebugDrawType;
+    }
+
+    public enum CollisionType : sbyte
+    {
+        CT_SPHERE = 0,
+        CT_CAPSULE = 1,
+        CT_CYLINDER = 2,
+        CT_BOX = 3,
+        NUM_COLLISION_TYPE = 4
+    }
+
+    public enum ColliderActiveType : sbyte
+    {
+        Always = 0,
+        OnContactActive = 1,
+        OnContactInactive = 2,
+        OnMotionActive = 3,
+        OnMotionInactive = 4,
+        Manual = 5,
+        NUM_COLLIDER_ACTIVE_TYPE = 6
+    }
+
+    public enum ColliderProperty : short
+    {
+        CpNone = 0,
+        CpBattleUse = 1,
+        CpBattleUnuse = 2,
+        CpRestPoint = 3,
+        CpHomingTarget = 4,
+        CpPerceive = 5,
+        CpDamage = 6,
+        CpAttack = 7,
+        CpContactActive = 8,
+        CpContactInactive = 9,
+        CpMotionActive = 10,
+        CpMotionInactive = 11,
+        CpManual = 12,
+        CpUpperSide = 13,
+        CpLowerSide = 14,
+        CpFrontSide = 15,
+        CpBackSide = 16,
+        CpLeftSide = 17,
+        CpRightSide = 18,
+        CpPointA = 19,
+        CpPointB = 20,
+        CpPointC = 21,
+        CpPointD = 22,
+        CpCyloopDownUnuse = 23,
+        CpDummyDamage = 24,
+        CpCable = 25,
+        CpTackleHand = 26,
+        NUM_COLLIDER_PROPERTY = 27
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x20)]
+    public struct BossColliderStatus
+    {
+        [FieldOffset(0x00)] public ColliderActiveType type;
+        [FieldOffset(0x02)] public unsafe fixed byte /* ColliderProperty[4] */ _propertys[8];
+
+        public unsafe ColliderProperty* propertys
+        {
+            get
+            {
+                fixed (byte* p_propertys = _propertys)
+                    return (ColliderProperty*)p_propertys;
+            }
+        }
+
+        [FieldOffset(0x10)] public UnmanagedString text;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x80)]
+    public struct BossPerceiveCollisionParam
+    {
+        [FieldOffset(0x00)] public bool isUse;
+        [FieldOffset(0x02)] public short priority;
+        [FieldOffset(0x04)] public CollisionType type;
+        [FieldOffset(0x08)] public UnmanagedString attachNodeName;
+        [FieldOffset(0x18)] public UnmanagedString name;
+        [FieldOffset(0x28)] public BossColliderStatus status;
+        [FieldOffset(0x50)] public Vector3 size;
+        [FieldOffset(0x60)] public Vector3 offset;
+        [FieldOffset(0x70)] public Vector3 rotation;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x2010)]
+    public struct BossPerceivePartsWithCollisionConfig
+    {
+        [FieldOffset(0x00)] public unsafe fixed byte /* BossPerceiveCollisionParam[64] */ _perceiveCollisions[8192];
+
+        public unsafe BossPerceiveCollisionParam* perceiveCollisions
+        {
+            get
+            {
+                fixed (byte* p_perceiveCollisions = _perceiveCollisions)
+                    return (BossPerceiveCollisionParam*)p_perceiveCollisions;
+            }
+        }
+
+        [FieldOffset(0x2000)] public bool isDebugDraw;
+    }
+
+    public enum PointType : sbyte
+    {
+        PT_HOMINGPOINT = 0,
+        PT_HEROSAGE = 1,
+        PT_MINIONGENERATOR = 2,
+        PT_TRIGGER = 3,
+        PT_ANCHOR = 4,
+        PT_DAMAGEPOINT = 5,
+        PT_STICK = 6,
+        PT_DAMAGEEFFECT = 7,
+        PT_DASHCIRCLE = 8,
+        NUM_POINT_TYPE = 9
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x28)]
+    public struct BossHomingPointParam
+    {
+        [FieldOffset(0x00)] public BossColliderStatus status;
+        [FieldOffset(0x20)] public float distance;
+        [FieldOffset(0x24)] public float nextSearchDistance;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x10)]
+    public struct BossMinionParam
+    {
+        [FieldOffset(0x00)] public uint num;
+        [FieldOffset(0x04)] public float interval;
+        [FieldOffset(0x08)] public float liveTime;
+        [FieldOffset(0x0C)] public float waitTime;
+    }
+
+    public enum Shape : sbyte
+    {
+        SHAPE_BOX = 0,
+        SHAPE_SPHERE = 1,
+        SHAPE_CYLINDER = 2,
+        SHAPE_CAPSULE = 3
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x10)]
+    public struct BossTrigerParam
+    {
+        [FieldOffset(0x00)] public Shape ShapeType;
+        [FieldOffset(0x04)] public float CollisionWidth;
+        [FieldOffset(0x08)] public float CollisionHeight;
+        [FieldOffset(0x0C)] public float CollisionDepth;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x04)]
+    public struct BossStickParam
+    {
+        [FieldOffset(0x00)] public float phaseTime;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x18)]
+    public struct BossDamagePointParam
+    {
+        [FieldOffset(0x00)] public bool isCyloopDownUnuse;
+        [FieldOffset(0x08)] public UnmanagedString text;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x28)]
+    public struct BossDashCirclPointParam
+    {
+        [FieldOffset(0x00)] public int focusGeometryIndex;
+        [FieldOffset(0x04)] public int focusTriangleIndex;
+        [FieldOffset(0x08)] public float sizeScale;
+        [FieldOffset(0x0C)] public float impulseSpeed;
+        [FieldOffset(0x10)] public float ocTime;
+        [FieldOffset(0x14)] public float slowRateBoss;
+        [FieldOffset(0x18)] public float slowRatePlayer;
+        [FieldOffset(0x1C)] public float slowTime;
+        [FieldOffset(0x20)] public float slowEaseInTime;
+        [FieldOffset(0x24)] public float slowEaseOutTime;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0xE0)]
+    public struct BossMeshFrameParam
+    {
+        [FieldOffset(0x00)] public bool isUse;
+        [FieldOffset(0x04)] public uint geometryIndex;
+        [FieldOffset(0x08)] public uint triangleIndex;
+        [FieldOffset(0x0C)] public PointType type;
+        [FieldOffset(0x10)] public BossHomingPointParam homingPoint;
+        [FieldOffset(0x38)] public BossMinionParam minionParam;
+        [FieldOffset(0x48)] public BossTrigerParam trigger;
+        [FieldOffset(0x58)] public BossStickParam stickParam;
+        [FieldOffset(0x60)] public BossDamagePointParam damagePoint;
+        [FieldOffset(0x78)] public BossDashCirclPointParam dashCirclPoint;
+        [FieldOffset(0xA0)] public unsafe fixed int linkNums[5];
+        [FieldOffset(0xC0)] public Vector3 offsetPos;
+        [FieldOffset(0xD0)] public Vector3 offsetRot;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0xE010)]
+    public struct BossMeshFrameConfig
+    {
+        [FieldOffset(0x00)] public unsafe fixed byte /* BossMeshFrameParam[256] */ _meshShapeKeyFrames[57344];
+
+        public unsafe BossMeshFrameParam* meshShapeKeyFrames
+        {
+            get
+            {
+                fixed (byte* p_meshShapeKeyFrames = _meshShapeKeyFrames)
+                    return (BossMeshFrameParam*)p_meshShapeKeyFrames;
+            }
+        }
+
+        [FieldOffset(0xE000)] public bool isDebugDraw;
+        [FieldOffset(0xE001)] public bool isDebugDrawPoint;
+        [FieldOffset(0xE002)] public bool isDebugDrawMesh;
+        [FieldOffset(0xE003)] public bool isDebugDrawMeshIndivid;
+        [FieldOffset(0xE004)] public float debugDrawMeshTriangleDistance;
+        [FieldOffset(0xE008)] public uint debugDrawMeshTriangleNum;
+    }
+
+    public enum BossAttackCollisionParam_AttackType : sbyte
+    {
+        AT_NONE = 0,
+        AT_BLOWOFF = 1,
+        AT_SLAMDOWNWARD = 2,
+        AT_KILLING = 3,
+        AT_NOTPARRY = 4,
+        AT_NOTDAMAGE = 5,
+        AT_NOTDAMAGETRIGGER = 6,
+        BossAttackCollisionParam_AttackType_NUM_ATTACK_TYPE = 7
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x70)]
+    public struct BossAttackCollisionParam
+    {
+        [FieldOffset(0x00)] public bool isUse;
+        [FieldOffset(0x08)] public UnmanagedString attachNodeName;
+        [FieldOffset(0x18)] public float damageVelocityRaito;
+        [FieldOffset(0x1C)] public unsafe fixed byte /* BossAttackCollisionParam_AttackType[4] */ _types[4];
+
+        public unsafe BossAttackCollisionParam_AttackType* types
+        {
+            get
+            {
+                fixed (byte* p_types = _types)
+                    return (BossAttackCollisionParam_AttackType*)p_types;
+            }
+        }
+
+        [FieldOffset(0x20)] public BossColliderStatus status;
+        [FieldOffset(0x40)] public float size;
+        [FieldOffset(0x50)] public Vector3 offset;
+        [FieldOffset(0x60)] public UnmanagedString parryCounterTargetCollisionName;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x1C10)]
+    public struct BossAttackCollisionConfig
+    {
+        [FieldOffset(0x00)] public unsafe fixed byte /* BossAttackCollisionParam[64] */ _attackCollisions[7168];
+
+        public unsafe BossAttackCollisionParam* attackCollisions
+        {
+            get
+            {
+                fixed (byte* p_attackCollisions = _attackCollisions)
+                    return (BossAttackCollisionParam*)p_attackCollisions;
+            }
+        }
+
+        [FieldOffset(0x1C00)] public bool isDebugDraw;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x60)]
+    public struct BossBattlePhaseCollisionParam
+    {
+        [FieldOffset(0x00)] public bool isUse;
+        [FieldOffset(0x08)] public UnmanagedString attachNodeName;
+        [FieldOffset(0x18)] public UnmanagedString name;
+        [FieldOffset(0x28)] public float size;
+        [FieldOffset(0x30)] public Vector3 offset;
+        [FieldOffset(0x40)] public Vector3 rotation;
+        [FieldOffset(0x50)] public bool isParryActive;
+        [FieldOffset(0x54)] public float cyloopRadius;
+        [FieldOffset(0x58)] public bool onlyRigidBody;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x610)]
+    public struct BossBattlePhaseCollisionConfig
+    {
+        [FieldOffset(0x00)] public unsafe fixed byte /* BossBattlePhaseCollisionParam[16] */ _battleCollisions[1536];
+
+        public unsafe BossBattlePhaseCollisionParam* battleCollisions
+        {
+            get
+            {
+                fixed (byte* p_battleCollisions = _battleCollisions)
+                    return (BossBattlePhaseCollisionParam*)p_battleCollisions;
+            }
+        }
+
+        [FieldOffset(0x600)] public bool isDebugDraw;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x14)]
+    public struct BossDropRingConfig
+    {
+        [FieldOffset(0x00)] public uint ringNumQuickCyloopUp;
+        [FieldOffset(0x04)] public uint ringNumQuickCyloopDown;
+        [FieldOffset(0x08)] public uint ringNumSonicSpecial;
+        [FieldOffset(0x0C)] public float ringSpawnDistance;
+        [FieldOffset(0x10)] public float ringSuckedVelocity;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x127C0)]
+    public struct BossBaseConfig
+    {
+        [FieldOffset(0x00)] public BossStatusConfig status;
+        [FieldOffset(0x1A0)] public BossPillarConfig pillar;
+        [FieldOffset(0x560)] public BossPerceivePartsWithCollisionConfig perceivPartsWithCollision;
+        [FieldOffset(0x2570)] public BossMeshFrameConfig meshShapeKeyFrame;
+        [FieldOffset(0x10580)] public BossAttackCollisionConfig attackCollision;
+        [FieldOffset(0x12190)] public BossBattlePhaseCollisionConfig battleCollision;
+        [FieldOffset(0x127A0)] public BossDropRingConfig dropRing;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x20)]
+    public struct BossRifleBeastPhaseAttackActionParam
+    {
+        [FieldOffset(0x00)] public float coolTime;
+        [FieldOffset(0x04)] public float initCoolTime;
+        [FieldOffset(0x08)] public float cableDamege;
+        [FieldOffset(0x0C)] public float cableRecoveryTime;
+        [FieldOffset(0x10)] public float cableRecovering;
+        [FieldOffset(0x14)] public ushort cableLowestHp;
+        [FieldOffset(0x18)] public float changePatternHP;
+        [FieldOffset(0x1C)] public float changeHP;
+    }
+
+    public enum AtackType : sbyte
+    {
+        AT_HIMING00 = 0,
+        AT_HIMING01 = 1,
+        AT_HIMING02 = 2,
+        AT_HIMING03 = 3,
+        AT_HIMING04 = 4,
+        AT_HIMING05 = 5,
+        AT_HIMING06 = 6,
+        AT_HIMING07 = 7,
+        AT_HIMING08 = 8,
+        AT_HIMING09 = 9,
+        AT_CROW_L = 10,
+        AT_CROW_R = 11,
+        AT_TACKLE = 12,
+        NUM_ACTION_TYPE = 13
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x14)]
+    public struct BossRifleBeastBattleAttackPattern
+    {
+        [FieldOffset(0x00)] public unsafe fixed byte /* AtackType[10] */ _attackPattern[10];
+
+        public unsafe AtackType* attackPattern
+        {
+            get
+            {
+                fixed (byte* p_attackPattern = _attackPattern)
+                    return (AtackType*)p_attackPattern;
+            }
+        }
+
+        [FieldOffset(0x0C)] public int attackNum;
+        [FieldOffset(0x10)] public bool isUse;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x50)]
+    public struct BossRifleBeastBattleDownRifle
+    {
+        [FieldOffset(0x00)] public float angleX;
+        [FieldOffset(0x04)] public float angleY;
+        [FieldOffset(0x08)] public float angleZ;
+        [FieldOffset(0x10)] public Vector3 endPosition;
+        [FieldOffset(0x20)] public Vector3 collOffset;
+        [FieldOffset(0x30)] public Vector3 collEndOffset;
+        [FieldOffset(0x40)] public float collSize;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x70)]
+    public struct BossRifleBeastBattleDownState
+    {
+        [FieldOffset(0x00)] public float waitTime;
+        [FieldOffset(0x04)] public ushort lowerHP;
+        [FieldOffset(0x08)] public float fase4DownTime;
+        [FieldOffset(0x0C)] public bool isPlayerFixHeight;
+        [FieldOffset(0x10)] public float playerHeight;
+        [FieldOffset(0x20)] public BossRifleBeastBattleDownRifle rifle;
+    }
+
+    public enum ArmType : sbyte
+    {
+        AL = 0,
+        BL = 1,
+        C = 2,
+        BR = 3,
+        AR = 4,
+        ArmType_NUM_ACTION_TYPE = 5
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x10)]
+    public struct BossRifleBeastBattleAttackHomingLaserBase
+    {
+        [FieldOffset(0x00)] public float waitTime;
+        [FieldOffset(0x04)] public ArmType armNum;
+        [FieldOffset(0x05)] public bool isContinuousFire;
+        [FieldOffset(0x08)] public float plusSpeed;
+        [FieldOffset(0x0C)] public bool useSpecialCamera;
+        [FieldOffset(0x0D)] public bool useUpMotion;
+    }
+
+    public enum CameraType : sbyte
+    {
+        CameraPatern0 = 0,
+        CameraPatern1 = 1,
+        CameraPatern2 = 2,
+        CameraPatern3 = 3,
+        CameraPatern4 = 4,
+        CameraType_NUM_ACTION_TYPE = 5
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x150)]
+    public struct BossRifleBeastBattleAttackHomingLaserPattern
+    {
+        [FieldOffset(0x00)] public unsafe fixed byte /* BossRifleBeastBattleAttackHomingLaserBase[20] */ _patterns[320];
+
+        public unsafe BossRifleBeastBattleAttackHomingLaserBase* patterns
+        {
+            get
+            {
+                fixed (byte* p_patterns = _patterns)
+                    return (BossRifleBeastBattleAttackHomingLaserBase*)p_patterns;
+            }
+        }
+
+        [FieldOffset(0x140)] public int laserNum;
+        [FieldOffset(0x144)] public CameraType cameraPatern;
+        [FieldOffset(0x148)] public float endCamera;
+        [FieldOffset(0x14C)] public float delayCamera;
+    }
+
+    public enum BossRifleBeastBattleFirstAttackHomingLaserPattern_CameraType : sbyte
+    {
+        BossRifleBeastBattleFirstAttackHomingLaserPattern_CameraType_CameraPatern0 = 0,
+        BossRifleBeastBattleFirstAttackHomingLaserPattern_CameraType_CameraPatern1 = 1,
+        BossRifleBeastBattleFirstAttackHomingLaserPattern_CameraType_CameraPatern2 = 2,
+        BossRifleBeastBattleFirstAttackHomingLaserPattern_CameraType_CameraPatern3 = 3,
+        BossRifleBeastBattleFirstAttackHomingLaserPattern_CameraType_CameraPatern4 = 4,
+        BossRifleBeastBattleFirstAttackHomingLaserPattern_CameraType_NUM_ACTION_TYPE = 5
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x158)]
+    public struct BossRifleBeastBattleFirstAttackHomingLaserPattern
+    {
+        [FieldOffset(0x00)] public unsafe fixed byte /* BossRifleBeastBattleAttackHomingLaserBase[20] */ _patterns[320];
+
+        public unsafe BossRifleBeastBattleAttackHomingLaserBase* patterns
+        {
+            get
+            {
+                fixed (byte* p_patterns = _patterns)
+                    return (BossRifleBeastBattleAttackHomingLaserBase*)p_patterns;
+            }
+        }
+
+        [FieldOffset(0x140)] public ushort Num;
+        [FieldOffset(0x144)] public int laserNum;
+        [FieldOffset(0x148)] public float endTime;
+        [FieldOffset(0x14C)] public BossRifleBeastBattleFirstAttackHomingLaserPattern_CameraType cameraPatern;
+        [FieldOffset(0x150)] public float endCamera;
+        [FieldOffset(0x154)] public float delayCamera;
+    }
+
+    public enum BossRifleBeastBattleSonic2FirstAttackHomingLaserPattern_CameraType : sbyte
+    {
+        BossRifleBeastBattleSonic2FirstAttackHomingLaserPattern_CameraType_CameraPatern0 = 0,
+        BossRifleBeastBattleSonic2FirstAttackHomingLaserPattern_CameraType_CameraPatern1 = 1,
+        BossRifleBeastBattleSonic2FirstAttackHomingLaserPattern_CameraType_CameraPatern2 = 2,
+        BossRifleBeastBattleSonic2FirstAttackHomingLaserPattern_CameraType_CameraPatern3 = 3,
+        BossRifleBeastBattleSonic2FirstAttackHomingLaserPattern_CameraType_CameraPatern4 = 4,
+        BossRifleBeastBattleSonic2FirstAttackHomingLaserPattern_CameraType_NUM_ACTION_TYPE = 5
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x94)]
+    public struct BossRifleBeastBattleSonic2FirstAttackHomingLaserPattern
+    {
+        [FieldOffset(0x00)] public unsafe fixed byte /* BossRifleBeastBattleAttackHomingLaserBase[8] */ _patterns[128];
+
+        public unsafe BossRifleBeastBattleAttackHomingLaserBase* patterns
+        {
+            get
+            {
+                fixed (byte* p_patterns = _patterns)
+                    return (BossRifleBeastBattleAttackHomingLaserBase*)p_patterns;
+            }
+        }
+
+        [FieldOffset(0x80)] public ushort Num;
+        [FieldOffset(0x84)] public int laserNum;
+        [FieldOffset(0x88)] public BossRifleBeastBattleSonic2FirstAttackHomingLaserPattern_CameraType cameraPatern;
+        [FieldOffset(0x8C)] public float endCamera;
+        [FieldOffset(0x90)] public float delayCamera;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x10)]
+    public struct BossRifleBeastBattleArmSetting
+    {
+        [FieldOffset(0x00)] public float angleSide;
+        [FieldOffset(0x04)] public float angleFront;
+        [FieldOffset(0x08)] public float upLine;
+        [FieldOffset(0x0C)] public float linePos;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x84)]
+    public struct BossRifleBeastBattleAttackHomingLaser
+    {
+        [FieldOffset(0x00)] public float radius;
+        [FieldOffset(0x04)] public float speed;
+        [FieldOffset(0x08)] public int EasyDamage;
+        [FieldOffset(0x0C)] public int NormalDamage;
+        [FieldOffset(0x10)] public int HardDamage;
+        [FieldOffset(0x14)] public int VeryHardDamage;
+        [FieldOffset(0x18)] public int EnemyDamage;
+        [FieldOffset(0x1C)] public float velocity;
+        [FieldOffset(0x20)] public float velocityKeepTime;
+        [FieldOffset(0x24)] public float controlTime;
+        [FieldOffset(0x28)] public int spritBomb;
+        [FieldOffset(0x2C)] public float homingRatio;
+        [FieldOffset(0x30)] public unsafe fixed byte /* BossRifleBeastBattleArmSetting[5] */ _armSet[80];
+
+        public unsafe BossRifleBeastBattleArmSetting* armSet
+        {
+            get
+            {
+                fixed (byte* p_armSet = _armSet)
+                    return (BossRifleBeastBattleArmSetting*)p_armSet;
+            }
+        }
+
+        [FieldOffset(0x80)] public float motionSeed;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x50)]
+    public struct BossRifleBeastBattleCyloopAttackHomingLaser
+    {
+        [FieldOffset(0x00)] public unsafe fixed byte /* BossRifleBeastBattleArmSetting[5] */ _armSet[80];
+
+        public unsafe BossRifleBeastBattleArmSetting* armSet
+        {
+            get
+            {
+                fixed (byte* p_armSet = _armSet)
+                    return (BossRifleBeastBattleArmSetting*)p_armSet;
+            }
+        }
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x30)]
+    public struct RifleBeastClawCamera
+    {
+        [FieldOffset(0x00)] public Vector3 camLookAtOffset;
+        [FieldOffset(0x10)] public Vector3 camEyeOffset;
+        [FieldOffset(0x20)] public float camFovy;
+        [FieldOffset(0x24)] public float camEaseInTime;
+        [FieldOffset(0x28)] public float camEaseOutTime;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x20)]
+    public struct RifleBeastClawRange
+    {
+        [FieldOffset(0x00)] public float useDistanceMin;
+        [FieldOffset(0x04)] public float useDistanceMax;
+        [FieldOffset(0x08)] public float useHeightMin;
+        [FieldOffset(0x0C)] public float useHeightMax;
+        [FieldOffset(0x10)] public float useAngleMin;
+        [FieldOffset(0x14)] public float useAngleMax;
+        [FieldOffset(0x18)] public float useAbsAngleOver;
+        [FieldOffset(0x1C)] public float useAreaOver;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x170)]
+    public struct RifleBeastClawQTE
+    {
+        [FieldOffset(0x00)] public float QTEStunTime;
+        [FieldOffset(0x04)] public BossRifleBeastBattleAttackHomingLaserPattern laserPattern;
+        [FieldOffset(0x154)] public float FirstShot;
+        [FieldOffset(0x158)] public float IntervalShot;
+        [FieldOffset(0x160)] public Vector3 QTEPlayerPos;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x230)]
+    public struct BossRifleBeastBattleAttackClaw
+    {
+        [FieldOffset(0x00)] public unsafe fixed byte /* RifleBeastClawCamera[2] */ _camera[96];
+
+        public unsafe RifleBeastClawCamera* camera
+        {
+            get
+            {
+                fixed (byte* p_camera = _camera)
+                    return (RifleBeastClawCamera*)p_camera;
+            }
+        }
+
+        [FieldOffset(0x60)] public RifleBeastClawRange range;
+        [FieldOffset(0x80)] public float waitTime;
+        [FieldOffset(0x84)] public float damageWaitTime;
+        [FieldOffset(0x90)] public unsafe fixed byte /* Vector3[2] */ _playerPos[32];
+
+        public unsafe Vector3* playerPos
+        {
+            get
+            {
+                fixed (byte* p_playerPos = _playerPos)
+                    return (Vector3*)p_playerPos;
+            }
+        }
+
+        [FieldOffset(0xB0)] public float stateWaitTime;
+        [FieldOffset(0xB4)] public bool useSlow;
+        [FieldOffset(0xC0)] public RifleBeastClawQTE QTEParam;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x30)]
+    public struct RifleBeastTackleCamera
+    {
+        [FieldOffset(0x00)] public Vector3 camLookAtOffset;
+        [FieldOffset(0x10)] public Vector3 camEyeOffset;
+        [FieldOffset(0x20)] public float camFovy;
+        [FieldOffset(0x24)] public float camEaseInTime;
+        [FieldOffset(0x28)] public float camEaseOutTime;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x18)]
+    public struct BossRifleBeastBattleCyloopCameraShake
+    {
+        [FieldOffset(0x00)] public bool enabled;
+        [FieldOffset(0x04)] public float waitTime;
+        [FieldOffset(0x08)] public float magnitude;
+        [FieldOffset(0x0C)] public float shakeTime;
+        [FieldOffset(0x10)] public float attnRatio;
+        [FieldOffset(0x14)] public byte freq;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x50)]
+    public struct BossRifleBeastBattleTackleCamera
+    {
+        [FieldOffset(0x00)] public UnmanagedString nodeName;
+        [FieldOffset(0x10)] public float fovyDeg;
+        [FieldOffset(0x14)] public float rollDeg;
+        [FieldOffset(0x20)] public Vector3 targetOffset;
+        [FieldOffset(0x30)] public Vector3 cameraOffset;
+        [FieldOffset(0x40)] public float playTime;
+        [FieldOffset(0x44)] public float easeInTime;
+        [FieldOffset(0x48)] public float easeOutTime;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x14)]
+    public struct BossRifleBeastParrySlowParam
+    {
+        [FieldOffset(0x00)] public float scale;
+        [FieldOffset(0x04)] public float time;
+        [FieldOffset(0x08)] public float easeOutTime;
+        [FieldOffset(0x0C)] public float delayTime;
+        [FieldOffset(0x10)] public bool cameraSlow;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x1E0)]
+    public struct BossRifleBeastBattleTackle
+    {
+        [FieldOffset(0x00)] public RifleBeastTackleCamera barrierCamera;
+        [FieldOffset(0x30)] public RifleBeastTackleCamera behindCamera;
+        [FieldOffset(0x60)] public float cameraDirection;
+        [FieldOffset(0x64)] public float cameraHight;
+        [FieldOffset(0x68)] public int easyBarrierHP;
+        [FieldOffset(0x6C)] public int normalBarrierHP;
+        [FieldOffset(0x70)] public int hardBarrierHP;
+        [FieldOffset(0x74)] public int veryHardBarrierHP;
+        [FieldOffset(0x78)] public int tackleDamage;
+        [FieldOffset(0x7C)] public float parryDistance;
+        [FieldOffset(0x80)] public float waitTime;
+        [FieldOffset(0x84)] public float damageWaitTime;
+        [FieldOffset(0x90)] public Vector3 tackleColliderOffset;
+        [FieldOffset(0xA0)] public Vector3 tackleColliderSize;
+        [FieldOffset(0xB0)] public BossRifleBeastBattleCyloopCameraShake cameraShake;
+        [FieldOffset(0xC8)] public unsafe fixed int drummingNum[10];
+        [FieldOffset(0xF0)] public Vector3 playerPos;
+        [FieldOffset(0x100)] public float drummingTime;
+        [FieldOffset(0x104)] public float playerHoldTime;
+        [FieldOffset(0x110)] public BossRifleBeastBattleTackleCamera playerCamera;
+        [FieldOffset(0x160)] public BossRifleBeastBattleTackleCamera playerCamera2;
+        [FieldOffset(0x1B0)] public Vector3 BehindPos;
+        [FieldOffset(0x1C0)] public BossRifleBeastParrySlowParam behindSetting;
+        [FieldOffset(0x1D4)] public float behindHoldTime;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x28)]
+    public struct BossRifleBeastBattleZoomCamera
+    {
+        [FieldOffset(0x00)] public float distance;
+        [FieldOffset(0x04)] public float elevation;
+        [FieldOffset(0x08)] public float playerHeight;
+        [FieldOffset(0x0C)] public float easeInTime;
+        [FieldOffset(0x10)] public float easeOutTime;
+        [FieldOffset(0x14)] public float changeParamDistanceMin;
+        [FieldOffset(0x18)] public float changeParamDistanceMax;
+        [FieldOffset(0x1C)] public float addDistance;
+        [FieldOffset(0x20)] public float addElevation;
+        [FieldOffset(0x24)] public float addPlayerHeight;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x1B8)]
+    public struct BossRifleBeastBattleCameraParam
+    {
+        [FieldOffset(0x00)] public unsafe fixed byte /* BossRifleBeastBattleZoomCamera[6] */ _normalCamera[240];
+
+        public unsafe BossRifleBeastBattleZoomCamera* normalCamera
+        {
+            get
+            {
+                fixed (byte* p_normalCamera = _normalCamera)
+                    return (BossRifleBeastBattleZoomCamera*)p_normalCamera;
+            }
+        }
+
+        [FieldOffset(0xF0)] public unsafe fixed byte /* BossRifleBeastBattleZoomCamera[5] */ _homingCamera[200];
+
+        public unsafe BossRifleBeastBattleZoomCamera* homingCamera
+        {
+            get
+            {
+                fixed (byte* p_homingCamera = _homingCamera)
+                    return (BossRifleBeastBattleZoomCamera*)p_homingCamera;
+            }
+        }
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x2C)]
+    public struct BossRifleBeastBattleState
+    {
+        [FieldOffset(0x00)] public float ClosedAreaRadius;
+        [FieldOffset(0x04)] public float ClosedAreaHeght;
+        [FieldOffset(0x08)] public float SmashDamageRatio;
+        [FieldOffset(0x0C)] public float InitPlayerHeight;
+        [FieldOffset(0x10)] public float RotationStartAngle;
+        [FieldOffset(0x14)] public float RotationStartAngleMiddle;
+        [FieldOffset(0x18)] public float RotationStartAngleLarge;
+        [FieldOffset(0x1C)] public float RotationWaitTime;
+        [FieldOffset(0x20)] public float RotationAngle;
+        [FieldOffset(0x24)] public int FirstMiniHP;
+        [FieldOffset(0x28)] public float FirstDamageRate;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x50)]
+    public struct BossRifleBeastBattleCyloopFocusFrameCamera
+    {
+        [FieldOffset(0x00)] public UnmanagedString nodeName;
+        [FieldOffset(0x10)] public float fovyDeg;
+        [FieldOffset(0x14)] public float rollDeg;
+        [FieldOffset(0x20)] public Vector3 targetOffset;
+        [FieldOffset(0x30)] public Vector3 cameraOffset;
+        [FieldOffset(0x40)] public float delayTime;
+        [FieldOffset(0x44)] public float playTime;
+        [FieldOffset(0x48)] public float easeInTime;
+        [FieldOffset(0x4C)] public float easeOutTime;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x30)]
+    public struct BossRifleBeastBattleCyloopCameraFixedCamera
+    {
+        [FieldOffset(0x00)] public Vector3 targetOffset;
+        [FieldOffset(0x10)] public Vector3 cameraOffset;
+        [FieldOffset(0x20)] public float fovyDeg;
+        [FieldOffset(0x24)] public float rollDeg;
+        [FieldOffset(0x28)] public float easeInTime;
+        [FieldOffset(0x2C)] public float easeOutTime;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0xA0)]
+    public struct BossRifleBeastBattleCyloopCamera
+    {
+        [FieldOffset(0x00)] public BossRifleBeastBattleCyloopFocusFrameCamera cameraFocus;
+        [FieldOffset(0x50)] public BossRifleBeastBattleCyloopCameraFixedCamera cameraFixed;
+        [FieldOffset(0x80)] public BossRifleBeastBattleCyloopCameraShake cameraShakePress;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x30)]
+    public struct BossRifleBeastBattleCyloopLaserCamera
+    {
+        [FieldOffset(0x00)] public Vector3 camLookAtOffset;
+        [FieldOffset(0x10)] public Vector3 camEyeOffset;
+        [FieldOffset(0x20)] public float camFovy;
+        [FieldOffset(0x24)] public float camEaseInTime;
+        [FieldOffset(0x28)] public float camEaseOutTime;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x20)]
+    public struct BossRifleBeastBattleCyloopEffectPos
+    {
+        [FieldOffset(0x00)] public Vector3 toptOffset;
+        [FieldOffset(0x10)] public Vector3 bottomOffset;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x190)]
+    public struct BossRifleBeastBattleCyloop
+    {
+        [FieldOffset(0x00)] public float restraintTime;
+        [FieldOffset(0x04)] public float pressDamageRatio;
+        [FieldOffset(0x08)] public float playerHeight;
+        [FieldOffset(0x0C)] public float beginPressDelay;
+        [FieldOffset(0x10)] public float blowAwayCameraTime;
+        [FieldOffset(0x14)] public int counterDamage;
+        [FieldOffset(0x20)] public Vector3 warpOffset;
+        [FieldOffset(0x30)] public bool isUsePressVibration;
+        [FieldOffset(0x38)] public UnmanagedString pressVibrationName;
+        [FieldOffset(0x50)] public Vector3 pressPlayerPos;
+        [FieldOffset(0x60)] public BossRifleBeastBattleCyloopCamera camera;
+        [FieldOffset(0x100)] public float StartBlowTime;
+        [FieldOffset(0x104)] public float LaserRadius;
+        [FieldOffset(0x108)] public float LaserHight;
+        [FieldOffset(0x10C)] public float keepCameraTime;
+        [FieldOffset(0x110)] public Vector3 cunterWarpOffset;
+        [FieldOffset(0x120)] public BossRifleBeastBattleCyloopLaserCamera laserCamera;
+        [FieldOffset(0x150)] public BossRifleBeastBattleCyloopEffectPos EffectPos;
+        [FieldOffset(0x170)] public float waitTime;
+        [FieldOffset(0x174)] public BossRifleBeastParrySlowParam slowSetting;
+        [FieldOffset(0x188)] public float effectSize;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x120)]
+    public struct BossRifleBeastBattleCyloopBlowOffCamera
+    {
+        [FieldOffset(0x00)] public float blowAwayTime;
+        [FieldOffset(0x10)] public BossRifleBeastBattleCyloopFocusFrameCamera blowUpCamera;
+        [FieldOffset(0x60)] public BossRifleBeastBattleCyloopCameraFixedCamera cameraFixed;
+        [FieldOffset(0x90)] public BossRifleBeastBattleCyloopCameraShake cameraShakePress;
+        [FieldOffset(0xB0)] public BossRifleBeastBattleCyloopFocusFrameCamera landingCamera;
+        [FieldOffset(0x100)] public BossRifleBeastBattleCyloopCameraShake cameraShakeLanding;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x170)]
+    public struct BossRifleBeastBattleCyloopBlowOffLaser
+    {
+        [FieldOffset(0x00)] public float changeDelay;
+        [FieldOffset(0x04)] public float speed;
+        [FieldOffset(0x08)] public float blowOffPower;
+        [FieldOffset(0x0C)] public float blowOffUpRate;
+        [FieldOffset(0x10)] public float controlTime;
+        [FieldOffset(0x14)] public float slowScale;
+        [FieldOffset(0x18)] public float slowTime;
+        [FieldOffset(0x1C)] public float slowEaseOutTime;
+        [FieldOffset(0x20)] public BossRifleBeastBattleAttackHomingLaserPattern laserPattern;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x350)]
+    public struct BossRifleBeastBattleCyloopBlowOff
+    {
+        [FieldOffset(0x00)] public float restraintTime;
+        [FieldOffset(0x04)] public float pressDamageRatio;
+        [FieldOffset(0x08)] public float playerHeight;
+        [FieldOffset(0x0C)] public float floatHeight;
+        [FieldOffset(0x10)] public float floatHeightChangeDelay;
+        [FieldOffset(0x14)] public float floatHeightChangeTime;
+        [FieldOffset(0x18)] public float playerMoveTime;
+        [FieldOffset(0x1C)] public float playerCurveDistance;
+        [FieldOffset(0x20)] public Vector3 playerPosFixedOffset;
+        [FieldOffset(0x30)] public Vector3 pressPlayerPos;
+        [FieldOffset(0x40)] public bool isUsePressVibration;
+        [FieldOffset(0x48)] public UnmanagedString pressVibrationName;
+        [FieldOffset(0x58)] public bool isUseLandingVibration;
+        [FieldOffset(0x60)] public UnmanagedString landingVibrationName;
+        [FieldOffset(0x70)] public Vector3 landingPlayerOffSet;
+        [FieldOffset(0x80)] public BossRifleBeastBattleCyloopBlowOffCamera camera;
+        [FieldOffset(0x1A0)] public BossRifleBeastBattleCyloopBlowOffLaser laser;
+        [FieldOffset(0x310)] public BossRifleBeastBattleCyloopEffectPos EffectPos;
+        [FieldOffset(0x330)] public BossRifleBeastParrySlowParam slowSetting;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x4F0)]
+    public struct BossRifleBeastBattleCyloopState
+    {
+        [FieldOffset(0x00)] public BossRifleBeastBattleCyloop cyloop;
+        [FieldOffset(0x190)] public BossRifleBeastBattleCyloopBlowOff blowOff;
+        [FieldOffset(0x4E0)] public float cyloopDamageRate;
+        [FieldOffset(0x4E4)] public float waitTime;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x3C)]
+    public struct BossRifleBeastParryParam
+    {
+        [FieldOffset(0x00)] public BossRifleBeastParrySlowParam homingLaserParrySlow;
+        [FieldOffset(0x14)] public BossRifleBeastParrySlowParam homingLaserLastParrySlow;
+        [FieldOffset(0x28)] public BossRifleBeastParrySlowParam homingLaserOneShotParrySlow;
+    }
+
+    public enum DebugCameraDrawTypeCyloop : byte
+    {
+        Cyloop1Start = 0,
+        Cyloop1Press = 1,
+        Cyloop2BlowUp = 2,
+        Cyloop2Press = 3,
+        Cyloop2Landing = 4
+    }
+
+    public enum DebugPlayerWarpPosTypeCyloop : byte
+    {
+        Cyloop1PlayerStart = 0,
+        Cyloop1PlayerPress = 1,
+        Cyloop2PlayerBlowUp = 2,
+        Cyloop2PlayerPress = 3,
+        Cyloop2PlayerLanding = 4
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x06)]
+    public struct BossRifleBeastDebugCommand
+    {
+        [FieldOffset(0x00)] public bool startFase4;
+        [FieldOffset(0x01)] public bool skipMove;
+        [FieldOffset(0x02)] public bool isDebugDrawCamera;
+        [FieldOffset(0x03)] public DebugCameraDrawTypeCyloop debugDrawTypeCyloop;
+        [FieldOffset(0x04)] public bool isDebugDrawPlayerWarpPosCyloop;
+        [FieldOffset(0x05)] public DebugPlayerWarpPosTypeCyloop debugDrawTypePlayerWarpPosCyloop;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x1E20)]
+    public struct BossRifleBeastBattleParam
+    {
+        [FieldOffset(0x00)] public unsafe fixed byte /* BossRifleBeastPhaseAttackActionParam[2] */ _actionParams[64];
+
+        public unsafe BossRifleBeastPhaseAttackActionParam* actionParams
+        {
+            get
+            {
+                fixed (byte* p_actionParams = _actionParams)
+                    return (BossRifleBeastPhaseAttackActionParam*)p_actionParams;
+            }
+        }
+
+        [FieldOffset(0x40)] public unsafe fixed byte /* BossRifleBeastBattleAttackPattern[12] */ _attackPattern[240];
+
+        public unsafe BossRifleBeastBattleAttackPattern* attackPattern
+        {
+            get
+            {
+                fixed (byte* p_attackPattern = _attackPattern)
+                    return (BossRifleBeastBattleAttackPattern*)p_attackPattern;
+            }
+        }
+
+        [FieldOffset(0x130)] public unsafe fixed byte /* BossRifleBeastBattleAttackPattern[12] */ _attackPatternAfter[240];
+
+        public unsafe BossRifleBeastBattleAttackPattern* attackPatternAfter
+        {
+            get
+            {
+                fixed (byte* p_attackPatternAfter = _attackPatternAfter)
+                    return (BossRifleBeastBattleAttackPattern*)p_attackPatternAfter;
+            }
+        }
+
+        [FieldOffset(0x220)] public BossRifleBeastBattleDownState downState;
+        [FieldOffset(0x290)] public unsafe fixed byte /* BossRifleBeastBattleAttackHomingLaserPattern[10] */ _attackHomingLaserPattern[3360];
+
+        public unsafe BossRifleBeastBattleAttackHomingLaserPattern* attackHomingLaserPattern
+        {
+            get
+            {
+                fixed (byte* p_attackHomingLaserPattern = _attackHomingLaserPattern)
+                    return (BossRifleBeastBattleAttackHomingLaserPattern*)p_attackHomingLaserPattern;
+            }
+        }
+
+        [FieldOffset(0xFB0)] public BossRifleBeastBattleFirstAttackHomingLaserPattern firstAttackHomingLaserPattern;
+        [FieldOffset(0x1108)] public BossRifleBeastBattleSonic2FirstAttackHomingLaserPattern Sonic2firstAttackHomingLaserPattern;
+        [FieldOffset(0x119C)] public BossRifleBeastBattleAttackHomingLaser attackHomingLaser;
+        [FieldOffset(0x1220)] public BossRifleBeastBattleCyloopAttackHomingLaser cyloopAttackHomingLaser;
+        [FieldOffset(0x1270)] public BossRifleBeastBattleCyloopAttackHomingLaser clawStunAttackHomingLaser;
+        [FieldOffset(0x12C0)] public BossRifleBeastBattleAttackClaw attackClaw;
+        [FieldOffset(0x14F0)] public BossRifleBeastBattleTackle attackTackle;
+        [FieldOffset(0x16D0)] public BossRifleBeastBattleCameraParam cameraParam;
+        [FieldOffset(0x1888)] public BossRifleBeastBattleState battaleState;
+        [FieldOffset(0x18C0)] public BossRifleBeastBattleCyloopState cyloopState;
+        [FieldOffset(0x1DB0)] public BossRifleBeastParryParam parryParam;
+        [FieldOffset(0x1DEC)] public BossRifleBeastDebugCommand debugParam;
+        [FieldOffset(0x1DF4)] public unsafe fixed float thresholdDamageEffectHPRatio[3];
+        [FieldOffset(0x1E00)] public unsafe fixed float qteSucceedWaitTimes[4];
+        [FieldOffset(0x1E10)] public bool isDebugDraw;
+        [FieldOffset(0x1E11)] public bool isSkip;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x40)]
+    public struct RifleBeastCableCamera
+    {
+        [FieldOffset(0x00)] public Vector3 camLookAtOffset;
+        [FieldOffset(0x10)] public Vector3 camEyeOffset;
+        [FieldOffset(0x20)] public float camFovy;
+        [FieldOffset(0x24)] public float camEaseInTime;
+        [FieldOffset(0x28)] public float camEaseOutTime;
+        [FieldOffset(0x2C)] public float camWaitTime;
+        [FieldOffset(0x30)] public bool useCamera;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x60)]
+    public struct BossRifleBeastCableParam
+    {
+        [FieldOffset(0x00)] public uint healthPoint;
+        [FieldOffset(0x04)] public float colliderOffsetY;
+        [FieldOffset(0x08)] public float attackRadius;
+        [FieldOffset(0x0C)] public float cyloopRadius;
+        [FieldOffset(0x10)] public float targetableTime;
+        [FieldOffset(0x14)] public float targetableDistance;
+        [FieldOffset(0x20)] public RifleBeastCableCamera camera;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x04)]
+    public struct RifleBeastPracticeNotifierConfig
+    {
+        [FieldOffset(0x00)] public bool usePracticeNotifier;
+        [FieldOffset(0x01)] public sbyte practiceNo;
+        [FieldOffset(0x02)] public short tipsNo;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x0C)]
+    public struct BossRifleBeastNotifierParam
+    {
+        [FieldOffset(0x00)] public RifleBeastPracticeNotifierConfig notifierConfigBattle1;
+        [FieldOffset(0x04)] public RifleBeastPracticeNotifierConfig notifierConfigBattle2;
+        [FieldOffset(0x08)] public RifleBeastPracticeNotifierConfig notifierConfigBattle3;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 0x14650)]
+    public struct Root
+    {
+        [FieldOffset(0)]     public BossBaseConfig bossBaseConfig;
+        [FieldOffset(0x127C0)] public BossRifleBeastBattleParam battleParam;
+        [FieldOffset(0x145E0)] public BossRifleBeastCableParam cableParam;
+        [FieldOffset(0x14640)] public BossRifleBeastNotifierParam notifierParam;
+    }
+
+}
