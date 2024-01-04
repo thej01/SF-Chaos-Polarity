@@ -58,6 +58,8 @@ Library "PhysicsHelpers" by "thej01"
 
 Library "INIHelpers" by "thej01"
 //
+    using System.Globalization;
+
     #lib "HMM"
     #lib "INI"
 
@@ -208,7 +210,8 @@ Library "INIHelpers" by "thej01"
             }
             else
             {
-                float.TryParse(LoadedINI[Category][Key], out result);
+                // specify a float is what we want, and specify that the "." symbol is a decimal point.
+                float.TryParse(LoadedINI[Category][Key], NumberStyles.Float, CultureInfo.InvariantCulture, out result);
                 return result;
             }
         }
