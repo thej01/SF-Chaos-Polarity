@@ -1,3 +1,10 @@
+## v1.2 (Around the world)
+- [Addition] - Added Spanish localization by NB12
+- [Addition] - Added Brazilian Portuguese localization by Keat
+
+- Localization is auto selected by your UI text setting ingame
+- Thanks to the localizers so much for translating the mod!
+
 ## v1.11 (Finally found my bug spray)
 - [Bugfix] - Fixed a really big bug where basically every parameter was messed up for some people
 
@@ -6,10 +13,14 @@
 - [Adjustment] - Rebalanced Unlocks
 - [Adjustment] - Rebalanced Ranks
 
-## v1.011 
+- Heard complaints from a few people that damage was too low. Looking back on it, yea, it was.
+
+- I also thought it was weird that the reasons the mod has the name Chaos Polarity was unlocked at LV 50. So that was changed.
+
+## v1.011 (That was fast)
 - [Bugfix] - Fixed update server issues 
 
-## v1.01 (That was fast)
+## v1.01
 - [Bugfix] - Fixed platformer soldiers not dying in one hit (datsquishyfello)
 
 ## v1.0

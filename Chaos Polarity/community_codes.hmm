@@ -133,6 +133,8 @@ Code "Fixed Platforming Soldiers" by "DatSquishyFello"
 	}
 }
 
+// RFL2HMM Libraries
+
 Library "EnemyJellymanConfig"
 {
     #load "System.Numerics.dll"
@@ -551,8 +553,6 @@ Library "GameHitStopParameter"
         }
     }
 }
-
-// Unknown, Hyper i think
 
 Library "BossRifleBeastConfig"
 {

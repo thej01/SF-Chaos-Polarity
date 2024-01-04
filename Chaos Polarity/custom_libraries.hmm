@@ -222,6 +222,7 @@ Library "GlobalVariables" by "thej01"
 //
     public static bool UpdateForever = false;
     public static bool DifficultyJustChanged = false;
+    public static bool LangJustChanged = false;
     public static bool PhantomRushJustActivated = false;
     public static bool PhantomRushJustLost = false;
     public static bool IsPhantomRushActive = false;

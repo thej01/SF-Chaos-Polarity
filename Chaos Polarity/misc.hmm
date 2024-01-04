@@ -6,10 +6,12 @@ Code "Global Updates" by "thej01"
     #lib "INIHelpers"
     #lib "BlackboardStatus"
     #lib "BlackboardBattle"
+    #lib "Converse"
 
     static bool IsInitialised = false;
 
     static string LastDifficulty = "";
+    static string LastLang = "";
 
     var pBlackboardStatus = BlackboardStatus.Get();
     var pBlackboardBattle = BlackboardBattle.Get();
@@ -58,6 +60,7 @@ Code "Global Updates" by "thej01"
 
         GlobalVariables.IsPhantomRushActive = true;
     }
+
     if (pBlackboardBattle->PhantomRushAmount <= 0.0f)
     {
         if (GlobalVariables.IsPhantomRushActive)
@@ -65,6 +68,37 @@ Code "Global Updates" by "thej01"
             
         GlobalVariables.IsPhantomRushActive = false;
     }
+
+    // language setting
+
+    Converse.Language lang = Converse.GetCurrentLanguage();
+
+    LastLang = GlobalVariables.CurrentLanguage;
+
+    switch (lang)
+    {
+        case Converse.Language.English:
+            GlobalVariables.CurrentLanguage = "en";
+            break;
+
+        case Converse.Language.Spanish:
+            GlobalVariables.CurrentLanguage = "es";
+            break;
+
+        case Converse.Language.Portuguese:
+            GlobalVariables.CurrentLanguage = "pt";
+            break;
+
+        default:
+            GlobalVariables.CurrentLanguage = "en";
+            break;
+    }
+
+    GlobalVariables.LangJustChanged = false;
+
+    if (GlobalVariables.CurrentLanguage != LastLang)
+        GlobalVariables.LangJustChanged = true;
+
 }
 
 Code "Perfect Parry Reworked" by "thej01"
@@ -449,6 +483,9 @@ Code "Text Replacements" by "thej01"
         IsInitialised = true;
         Init_Lang();
     }
+
+    if (GlobalVariables.LangJustChanged)
+        Init_Lang();
 
     Converse.Redirect("tu1000dlc_245", MasterTrialObjective);
     Converse.Redirect("tu1000dlc_275", TheEndSS2Transformation);

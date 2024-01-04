@@ -31,4 +31,8 @@ add properties/Extreme/ranks.ini
 add properties/Extreme/unlocks.ini
 add lang/en/ranks.ini
 add lang/en/bosses.ini
+add lang/es/ranks.ini
+add lang/es/bosses.ini
+add lang/pt/ranks.ini
+add lang/pt/bosses.ini
 add mod.ini

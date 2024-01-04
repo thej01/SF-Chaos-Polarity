@@ -170,6 +170,9 @@ Code "Combo Ranks" by "thej01 && Helped with by Gordin Ramsay"
     if (GlobalVariables.DifficultyJustChanged)
         Init_Difficulty();
 
+    if (GlobalVariables.LangJustChanged)
+        Init_Lang();
+
     if (RankAmount < 0)
         return;
 
