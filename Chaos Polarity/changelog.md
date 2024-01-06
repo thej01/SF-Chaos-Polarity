@@ -1,8 +1,16 @@
+## v1.3 (Tweaks and fixes)
+- [Addition] - Added Italian localization by ShiboKing
+- [Amendment] - Brazillian Portuguese localization modified to match base game better
+- [Adjustment] - Modified Spin Slash angle
+- [Adjustment] - Phantom Rush gain from moves have been increased
+- [Bugfix] - Spindash/Spin Slice hitstop adjusted to match other moves
+- [Bugfix] - Fixed Combo Finishers missing enemy half of the time
+
 ## v1.2 (Around the world)
 - [Addition] - Added Spanish localization by NB12
-- [Addition] - Added Brazilian Portuguese localization by Keat
+- [Addition] - Added Brazillian Portuguese localization by Keat
 
-- Localization is auto selected by your UI text setting ingame
+- Localization is auto selected by your UI text setting ingame.
 - Thanks to the localizers so much for translating the mod!
 
 ## v1.11 (Finally found my bug spray)
@@ -18,7 +26,7 @@
 - I also thought it was weird that the reasons the mod has the name Chaos Polarity was unlocked at LV 50. So that was changed.
 
 ## v1.011 (That was fast)
-- [Bugfix] - Fixed update server issues 
+- [Bugfix] - Fixed update server issues
 
 ## v1.01
 - [Bugfix] - Fixed platformer soldiers not dying in one hit (datsquishyfello)

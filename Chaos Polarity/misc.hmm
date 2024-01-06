@@ -89,6 +89,10 @@ Code "Global Updates" by "thej01"
             GlobalVariables.CurrentLanguage = "pt";
             break;
 
+        case Converse.Language.Italian:
+            GlobalVariables.CurrentLanguage = "it";
+            break;
+
         default:
             GlobalVariables.CurrentLanguage = "en";
             break;
@@ -335,7 +339,7 @@ Code "Remove (most) hitstop" by "thej01"
     if (GameHitStopParameterInfo.pData == null)
         return;
 
-    float hitstop = GlobalVariables.HitstopToUse
+    float hitstop = GlobalVariables.HitstopToUse;
 
     RFL_SET_PARAM(GameHitStopParameterInfo, data[(int)Hitstop.HitstopID.Charge].time, hitstop);
     RFL_SET_PARAM(GameHitStopParameterInfo, data[(int)Hitstop.HitstopID.ChargeFinish].time, hitstop);
@@ -352,6 +356,7 @@ Code "Remove (most) hitstop" by "thej01"
     RFL_SET_PARAM(GameHitStopParameterInfo, data[(int)Hitstop.HitstopID.EnemyDefeat2].time, 0);
     RFL_SET_PARAM(GameHitStopParameterInfo, data[(int)Hitstop.HitstopID.CommonAttackFinish].time, hitstop);
     RFL_SET_PARAM(GameHitStopParameterInfo, data[(int)Hitstop.HitstopID.CommonSSSkillFinish].time, hitstop);
+    RFL_SET_PARAM(GameHitStopParameterInfo, data[(int)Hitstop.HitstopID.SpinDash].time, hitstop);
 }
 
 Code "Manual Finishers" by "thej01" in "thej01's codes/Gameplay" does "Hold in a direction to do a finisher!"
@@ -365,6 +370,7 @@ Code "Manual Finishers" by "thej01" in "thej01's codes/Gameplay" does "Hold in a
 
     static bool IsInitialised = false;
     static bool IsEnabled = false;
+    static bool RemoveSphere = false;
 
     static void Init_Difficulty()
     {
@@ -401,6 +407,49 @@ Code "Manual Finishers" by "thej01" in "thej01's codes/Gameplay" does "Hold in a
     {
         if (!XInput.IsAnalogNeutral(0))
             Player.State.SetState(Sonic.StateID.StateHomingFinish);
+    }
+}
+
+Code "Finisher Misses fix" by "thej01"
+//
+    #include "Reflection" noemit
+
+    #lib "Player"
+    #lib "Sonic"
+    #lib "Reflection"
+    #lib "SonicParameters"
+
+    static bool RemoveSphere = false;
+    static bool JustEnteredFinish = false;
+
+    var SonicParametersInfo = Reflection.GetDataInfo<SonicParameters.Root>("player_common");
+//
+{
+    if (RemoveSphere)
+    {
+        RemoveSphere = false;
+        RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.spinDash.damageRate, 1);
+        RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.spinDash.velocity.Z, 20);
+        RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.spinDash.velocity.Y, 5);
+        Player.Collision.SetCollisionSphere(Player.CollisionType.Default, 1);
+    }
+
+    if (Player.State.GetCurrentStateID<Sonic.StateID>() == Sonic.StateID.StateHomingFinish)
+    {
+        if (!JustEnteredFinish)
+        {
+            RemoveSphere = true;
+            RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.spinDash.damageRate, 0);
+            RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.spinDash.velocity.Z, 0);
+            RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.spinDash.velocity.Y, 2);
+            Player.Collision.SetCollisionSphere(Player.CollisionType.Damage, 7);
+        }
+
+        JustEnteredFinish = true;
+    }
+    else
+    {
+        JustEnteredFinish = false;
     }
 }
 

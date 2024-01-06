@@ -23,7 +23,7 @@ Code "Spin Slice" by "thej01" in "thej01's codes/Gameplay" does "Press jump duri
     // !! THIS IS IMPORTANT TO CHANGE!
     // if your combat mod changes hitstun, change this to fix the spin slice not working properly.
     // 1 is base game, 2 is no hitstun.
-    static float HitStunMultiplier = 1;
+    static float HitStunMultiplier = 1.9f;
 
     static bool IsSpinSlice = false;
     static bool QueueSpinSlice = false;
@@ -98,6 +98,8 @@ Code "Spin Slice" by "thej01" in "thej01's codes/Gameplay" does "Press jump duri
 
     if (GlobalVariables.DifficultyJustChanged)
         Init_Difficulty();
+
+    HitStunMultiplier = (2 - GlobalVariables.HitstopToUse);
 
     if (Player.GetPlayerType() != Player.PlayerType.Sonic)
         return;

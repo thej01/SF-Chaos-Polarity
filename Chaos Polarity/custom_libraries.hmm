@@ -421,7 +421,7 @@ Library "Hitstop" by "thej01"
     // feel free to clean this up, but i wouldnt recommend using it.
     public enum HitstopID : int
     {
-        Unk_Attack0 = 0,
+        SpinDash = 0, // this is used for spinDash, but it may be more
         
         Accele1 = 1,
 

@@ -46,6 +46,7 @@ Code "Move Changes" by "thej01"
     static float SpinSlashBounce = 0.4f;
     static float SpinSlashSlowRatio0 = 1;
     static float SpinSlashSlowRatio1 = 1;
+    static float SpinSlashZOffset = 5;
 
     static float KickSpeed = 160f;
     static float LoopEndSpeed = 60f;
@@ -122,6 +123,7 @@ Code "Move Changes" by "thej01"
         SpinSlashBounce = INIHelpers.Parse.Float("SpinSlash", "BounceTime");
         SpinSlashSlowRatio0 = INIHelpers.Parse.Float("SpinSlash", "SlowRatio0");
         SpinSlashSlowRatio1 = INIHelpers.Parse.Float("SpinSlash", "SlowRatio1");
+        SpinSlashZOffset = INIHelpers.Parse.Float("SpinSlash", "ZOffset");
 
         KickSpeed = INIHelpers.Parse.Float("LoopKick", "KickSpeed");
         LoopEndSpeed = INIHelpers.Parse.Float("LoopKick", "LoopEndSpeed");
@@ -259,22 +261,25 @@ Code "Move Changes" by "thej01"
     RFL_SET_PARAM(SonicParametersInfo, common.crasherSet.superSonic2.zigzagBeginOneStepTime, WildRushStart);
     RFL_SET_PARAM(SonicParametersInfo, common.crasherSet.superSonic2.zigzagEndOneStepTime, WildRushEnd);
 
-    // spinslash speed and timespeed
+    // spinslash speed, timespeed, and zoffset
 
     RFL_SET_PARAM(SonicParametersInfo, common.spinSlashSet.sonic.chargeTime, SpinSlashCharge);
     RFL_SET_PARAM(SonicParametersInfo, common.spinSlashSet.sonic.bounceTime, SpinSlashBounce);
     RFL_SET_PARAM(SonicParametersInfo, common.spinSlashSet.sonic.slowRatio0, SpinSlashSlowRatio0);
     RFL_SET_PARAM(SonicParametersInfo, common.spinSlashSet.sonic.slowRatio1, SpinSlashSlowRatio1);
+    RFL_SET_PARAM(SonicParametersInfo, common.spinSlashSet.sonic.offset.Z, SpinSlashZOffset);
 
     RFL_SET_PARAM(SonicParametersInfo, common.spinSlashSet.superSonic1.chargeTime, SpinSlashCharge);
     RFL_SET_PARAM(SonicParametersInfo, common.spinSlashSet.superSonic1.bounceTime, SpinSlashBounce);
     RFL_SET_PARAM(SonicParametersInfo, common.spinSlashSet.superSonic1.slowRatio0, SpinSlashSlowRatio0);
     RFL_SET_PARAM(SonicParametersInfo, common.spinSlashSet.superSonic1.slowRatio1, SpinSlashSlowRatio1);
+    RFL_SET_PARAM(SonicParametersInfo, common.spinSlashSet.superSonic1.offset.Z, SpinSlashZOffset);
 
     RFL_SET_PARAM(SonicParametersInfo, common.spinSlashSet.superSonic2.chargeTime, SpinSlashCharge);
     RFL_SET_PARAM(SonicParametersInfo, common.spinSlashSet.superSonic2.bounceTime, SpinSlashBounce);
     RFL_SET_PARAM(SonicParametersInfo, common.spinSlashSet.superSonic2.slowRatio0, SpinSlashSlowRatio0);
     RFL_SET_PARAM(SonicParametersInfo, common.spinSlashSet.superSonic2.slowRatio1, SpinSlashSlowRatio1);
+    RFL_SET_PARAM(SonicParametersInfo, common.spinSlashSet.superSonic2.offset.Z, SpinSlashZOffset);
 
     // loop kick speed
 
