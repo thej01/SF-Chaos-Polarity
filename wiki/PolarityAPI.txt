@@ -1,7 +1,7 @@
 Library "PolarityAPI" by "thej01"
 //
 
-    private const ConsoleColor ColorGray = ConsoleColor.Gray;
+    	private const ConsoleColor ColorGray = ConsoleColor.Gray;
 	private const ConsoleColor ColorYellow = ConsoleColor.Yellow;
 	private const ConsoleColor ColorRed = ConsoleColor.Red;
 
