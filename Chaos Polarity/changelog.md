@@ -5,7 +5,7 @@
 
 - The Modding API is still really new, so expect bugs.
 
-- Read about the Modding API here:
+- Read about the Modding API [Here](https://github.com/thej01/SF-Chaos-Polarity/wiki/%E2%80%8EModding)
 
 ## v1.3 (Tweaks and fixes)
 - [Addition] - Added Italian localization by ShiboKing
