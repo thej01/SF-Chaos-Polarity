@@ -1,7 +1,7 @@
 ## v1.4 (Modception)
 - [Addition] - Modding API (Any incompatible mods can use this to make Chaos Polarity compatible, or just... make Properties/Localization mods!)
 - [Tweak] - Homing Shot now pulls in enemies
-- [Bugfix] - Fixed a bug where the 1234 combo as SS had an extra hit
+- [Bugfix] - Fixed a bug where the basic combo as SS had an extra hit
 
 - The Modding API is still really new, so expect bugs.
 
