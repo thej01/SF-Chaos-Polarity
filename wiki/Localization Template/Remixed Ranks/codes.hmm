@@ -1,7 +1,7 @@
 Library "PolarityAPI" by "thej01"
 //
 
-    private const ConsoleColor ColorGray = ConsoleColor.Gray;
+    	private const ConsoleColor ColorGray = ConsoleColor.Gray;
 	private const ConsoleColor ColorYellow = ConsoleColor.Yellow;
 	private const ConsoleColor ColorRed = ConsoleColor.Red;
 
@@ -169,15 +169,15 @@ Library "PolarityAPI" by "thej01"
 
 Code "Remixed Ranks" by "thej01"
 //
-    #lib "HMM"
-    #lib "PolarityAPI"
+#lib "HMM"
+#lib "PolarityAPI"
 
-    // Get Chaos Polarity mod data
-    static HMM.Mod PolarityMod = HMM.GetModByID("thej01_ChaosPolarity");
+// Get Chaos Polarity mod data using the ModID for Chaos Polarity
+static HMM.Mod PolarityMod = HMM.GetModByID("thej01_ChaosPolarity");
 //
 {
-    // PolarityMod will be null if Chaos Polarity is not installed/enabled.
-    if (PolarityMod != null)
-        // Redirect English ranks localization to this mod
-        PolarityAPI.Paths.EN.ranks.ModName = "thej01_remixed_ranks";
+// PolarityMod will be null if Chaos Polarity is not installed/enabled.
+if (PolarityMod != null)
+  // Redirect English ranks localization to this mod using the ModID
+  PolarityAPI.Paths.EN.ranks.ModName = "thej01_remixed_ranks";
 }
