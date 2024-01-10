@@ -20,8 +20,13 @@ Code "Global Updates" by "thej01"
 
     if (!IsInitialised || GlobalVariables.UpdateForever)
     {
+        PolarityAPI.Paths.PathData PropertyData = new PolarityAPI.Paths.PathData();
+
+        PropertyData = PolarityAPI.Paths.Global;
+
         string LoadResult = "";
-        LoadResult = INIHelpers.LoadINI(GlobalVariables.ModName, @"\\properties\\global.ini");
+
+        LoadResult = INIHelpers.LoadINI(PropertyData.ModName, PropertyData.MainPath + "\\global.ini");
         IsInitialised = true;
 
         if (LoadResult == "ModNotFound" || LoadResult == "ININotFound")
@@ -119,6 +124,7 @@ Code "Perfect Parry Reworked" by "thej01"
     #lib "Sonic"
     #lib "Time"
     #lib "Lua"
+    #lib "PolarityAPI"
 
     static bool IsInitialised = false;
 
@@ -143,8 +149,13 @@ Code "Perfect Parry Reworked" by "thej01"
 
     static void Init_Difficulty()
     {
+        PolarityAPI.Paths.PathData PropertyData = new PolarityAPI.Paths.PathData();
+
+        PropertyData = PolarityAPI.Paths.Get_PathData_From_Difficulty("general", GlobalVariables.CurrentDifficulty);
+
         string LoadResult = "";
-        LoadResult = INIHelpers.LoadINI(GlobalVariables.ModName, @"\\properties\\" + GlobalVariables.CurrentDifficulty + "\\general.ini");
+
+        LoadResult = INIHelpers.LoadINI(PropertyData.ModName, PropertyData.MainPath + GlobalVariables.CurrentDifficulty + "\\general.ini");
 
         if (LoadResult == "ModNotFound" || LoadResult == "ININotFound")
             return;
@@ -265,6 +276,7 @@ Code "Add Enemy Sneak Attack to Double Tap Bumpers" by "thej01" in "thej01's cod
     #lib "GlobalVariables"
     #lib "INIHelpers"
     #lib "Unlocks"
+    #lib "PolarityAPI"
 
     static bool CanTurnAround = false;
 
@@ -273,8 +285,13 @@ Code "Add Enemy Sneak Attack to Double Tap Bumpers" by "thej01" in "thej01's cod
 
     static void Init_Difficulty()
     {
+        PolarityAPI.Paths.PathData PropertyData = new PolarityAPI.Paths.PathData();
+
+        PropertyData = PolarityAPI.Paths.Get_PathData_From_Difficulty("moves", GlobalVariables.CurrentDifficulty);
+
         string LoadResult = "";
-        LoadResult = INIHelpers.LoadINI(GlobalVariables.ModName, @"\\properties\\" + GlobalVariables.CurrentDifficulty + "\\moves.ini");
+
+        LoadResult = INIHelpers.LoadINI(PropertyData.ModName, PropertyData.MainPath + GlobalVariables.CurrentDifficulty + "\\moves.ini");
 
         if (LoadResult == "ModNotFound" || LoadResult == "ININotFound")
             return;
@@ -332,9 +349,10 @@ Code "Remove (most) hitstop" by "thej01"
     #lib "GameHitStopParameter"
     #lib "Hitstop"
     #lib "GlobalVariables"
+
+    var GameHitStopParameterInfo = Reflection.GetDataInfo<GameHitStopParameter.Root>("hitstop");
 //
 {
-    var GameHitStopParameterInfo = Reflection.GetDataInfo<GameHitStopParameter.Root>("hitstop");
 
     if (GameHitStopParameterInfo.pData == null)
         return;
@@ -367,6 +385,7 @@ Code "Manual Finishers" by "thej01" in "thej01's codes/Gameplay" does "Hold in a
     #lib "INIHelpers"
     #lib "GlobalVariables"
     #lib "Unlocks"
+    #lib "PolarityAPI"
 
     static bool IsInitialised = false;
     static bool IsEnabled = false;
@@ -374,9 +393,13 @@ Code "Manual Finishers" by "thej01" in "thej01's codes/Gameplay" does "Hold in a
 
     static void Init_Difficulty()
     {
-        string LoadResult = ""
+        PolarityAPI.Paths.PathData PropertyData = new PolarityAPI.Paths.PathData();
 
-        LoadResult = INIHelpers.LoadINI(GlobalVariables.ModName, @"\\properties\\" + GlobalVariables.CurrentDifficulty + "\\moves.ini");
+        PropertyData = PolarityAPI.Paths.Get_PathData_From_Difficulty("moves", GlobalVariables.CurrentDifficulty);
+
+        string LoadResult = "";
+
+        LoadResult = INIHelpers.LoadINI(PropertyData.ModName, PropertyData.MainPath + GlobalVariables.CurrentDifficulty + "\\moves.ini");
 
         if (LoadResult == "ModNotFound" || LoadResult == "ININotFound")
             return;
@@ -429,6 +452,7 @@ Code "Finisher Misses fix" by "thej01"
     {
         RemoveSphere = false;
         RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.spinDash.damageRate, 1);
+        RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.spinDash.damageRateSS, 1);
         RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.spinDash.velocity.Z, 20);
         RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.spinDash.velocity.Y, 5);
         Player.Collision.SetCollisionSphere(Player.CollisionType.Default, 1);
@@ -440,6 +464,7 @@ Code "Finisher Misses fix" by "thej01"
         {
             RemoveSphere = true;
             RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.spinDash.damageRate, 0);
+            RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.spinDash.damageRateSS, 0);
             RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.spinDash.velocity.Z, 0);
             RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.spinDash.velocity.Y, 2);
             Player.Collision.SetCollisionSphere(Player.CollisionType.Damage, 7);
@@ -516,8 +541,13 @@ Code "Text Replacements" by "thej01"
 
     static void Init_Lang()
     {
+        PolarityAPI.Paths.PathDataLang PropertyData = new PolarityAPI.Paths.PathDataLang();
+
+        PropertyData = PolarityAPI.Paths.Get_PathData_From_Lang("bosses", GlobalVariables.CurrentLanguage);
+
         string LoadResult = "";
-        LoadResult = INIHelpers.LoadINI(GlobalVariables.ModName, @"\\lang\\" + GlobalVariables.CurrentLanguage + "\\bosses.ini");
+
+        LoadResult = INIHelpers.LoadINI(PropertyData.ModName, PropertyData.MainPath + GlobalVariables.CurrentLanguage + "\\bosses.ini");
 
         if (LoadResult == "ModNotFound" || LoadResult == "ININotFound")
             return;

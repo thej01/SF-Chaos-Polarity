@@ -14,20 +14,23 @@ Code "Move Staleness" by "thej01" in "thej01's codes/Gameplay" does "Spamming th
     #lib "BlackboardStatus"
     #lib "GameObject"
 
+    using System.Collections.Generic;
+
     static bool IsInitialised = false;
     static bool IsMoveStalennessInitialised = false;
+    static bool IsEnabled = true;
 
     static int MoveAmount = 15;
 
-    static int[] MoveStalenessToState = new int[MoveAmount + 1];
+    static List<int> MoveStalenessToState = new List<int>();
 
-    static bool[] JustStaled = new bool[MoveAmount + 1];
-    static bool[] JustUnStaled = new bool[MoveAmount + 1];
-    static bool[] IncrementsDuringState = new bool[MoveAmount + 1];
+    static List<bool> JustStaled = new List<bool>();
+    static List<bool> JustUnStaled = new List<bool>();
+    static List<bool> IncrementsDuringState = new List<bool>();
 
-    static float[] MoveStaleness = new float[MoveAmount + 1];
-    static float[] MoveStalenessTimer = new float[MoveAmount + 1];
-    static float[] MovePointsIncrease = new float[MoveAmount + 1];
+    static List<float> MoveStaleness = new List<float>();
+    static List<float> MoveStalenessTimer = new List<float>();
+    static List<float> MovePointsIncrease = new List<float>();
 
     var SonicParametersInfo = Reflection.GetDataInfo<SonicParameters.Root>("player_common");
 
@@ -63,8 +66,13 @@ Code "Move Staleness" by "thej01" in "thej01's codes/Gameplay" does "Spamming th
 
     static void Init_Difficulty()
     {
+        PolarityAPI.Paths.PathData PropertyData = new PolarityAPI.Paths.PathData();
+
+        PropertyData = PolarityAPI.Paths.Get_PathData_From_Difficulty("general", GlobalVariables.CurrentDifficulty);
+
         string LoadResult = "";
-        LoadResult = INIHelpers.LoadINI(GlobalVariables.ModName, @"\\properties\\" + GlobalVariables.CurrentDifficulty + "\\general.ini");
+
+        LoadResult = INIHelpers.LoadINI(PropertyData.ModName, PropertyData.MainPath + GlobalVariables.CurrentDifficulty + "\\general.ini");
 
         if (LoadResult == "ModNotFound" || LoadResult == "ININotFound")
             return;
@@ -85,24 +93,41 @@ Code "Move Staleness" by "thej01" in "thej01's codes/Gameplay" does "Spamming th
 
     if (!IsInitialised || GlobalVariables.UpdateForever)
     {
+        PolarityAPI.Paths.PathData PropertyData = new PolarityAPI.Paths.PathData();
+
+        PropertyData = PolarityAPI.Paths.Global;
+
         string LoadResult = "";
-        LoadResult = INIHelpers.LoadINI(GlobalVariables.ModName, @"\\properties\\global.ini");
+
+        LoadResult = INIHelpers.LoadINI(PropertyData.ModName, PropertyData.MainPath + "\\global.ini");
         IsInitialised = true;
 
         if (LoadResult == "ModNotFound" || LoadResult == "ININotFound")
             return;
 
+        MoveAmount = (INIHelpers.Parse.Int("MoveStaleness", "MoveAmount"));
+
+        MoveStalenessToState.Clear();
+        MovePointsIncrease.Clear();
+        IncrementsDuringState.Clear();
+
+        JustStaled.Clear();
+        JustUnStaled.Clear();
+        MoveStaleness.Clear();
+        MoveStalenessTimer.Clear();
+
         for (int curMove = 0; curMove < (MoveAmount + 1); ++curMove)
         {
             string moveNum = curMove.ToString();
-            MoveStalenessToState[curMove] = INIHelpers.Parse.Int("MoveStaleness", "Move" + moveNum);
-            MovePointsIncrease[curMove] = INIHelpers.Parse.Float("MoveStaleness", "PointsIncrease" + moveNum);
-            IncrementsDuringState[curMove] = INIHelpers.Parse.Bool("MoveStaleness", "IncrementsDuring" + moveNum);
+            MoveStalenessToState.Add(INIHelpers.Parse.Int("MoveStaleness", "Move" + moveNum));
+            MovePointsIncrease.Add(INIHelpers.Parse.Float("MoveStaleness", "PointsIncrease" + moveNum));
+            IncrementsDuringState.Add(INIHelpers.Parse.Bool("MoveStaleness", "IncrementsDuring" + moveNum));
             if (!IsMoveStalennessInitialised)
             {
-                JustStaled[curMove] = false;
-                JustUnStaled[curMove] = false;
-                MoveStaleness[curMove] = 0f;
+                JustStaled.Add(false);
+                JustUnStaled.Add(false);
+                MoveStaleness.Add(0);
+                MoveStalenessTimer.Add(0);
             }
         }
 
@@ -118,6 +143,8 @@ Code "Move Staleness" by "thej01" in "thej01's codes/Gameplay" does "Spamming th
         PhantomRushIncrease = INIHelpers.Parse.Float("MoveStaleness", "PhantomRushIncrease");
 
         RequiredForFresh = INIHelpers.Parse.Float("MoveStaleness", "RequiredForFresh");
+
+        IsEnabled = INIHelpers.Parse.Bool("MoveStaleness", "IsEnabled");
 
         Init_Difficulty();
     }
@@ -150,35 +177,72 @@ Code "Move Staleness" by "thej01" in "thej01's codes/Gameplay" does "Spamming th
 
     damageMultiplierToUse += (curDriveStruct.attackMultiplier - 1);
 
+    float resultDamageMin = DamageMin;
+    float resultDamageMax = DamageMax;
+    if (isSuper)
+    {
+        resultDamageMin *= SSDamageMultiplier;
+        resultDamageMax *= SSDamageMultiplier;
+    }
+    resultDamageMin += extraDamageFromCombo;
+    resultDamageMax += extraDamageFromCombo;
+
     // yeah you might be on your own for this one...
 
-    for (int curMove = 0; curMove < (MoveAmount + 1); ++curMove)
+    if (IsEnabled)
     {
-        bool isInDifferentMove = false;
-        if (!JustUnStaled[curMove])
+        for (int curMove = 0; curMove < (MoveAmount + 1); ++curMove)
         {
-            for (int otherMoves = 0; otherMoves < (MoveAmount + 1); ++otherMoves)
+            bool isInDifferentMove = false;
+            if (!JustUnStaled[curMove])
             {
-                if (curMove != otherMoves)
+                for (int otherMoves = 0; otherMoves < (MoveAmount + 1); ++otherMoves)
                 {
-                    if (Player.State.GetCurrentStateID<int>() == MoveStalenessToState[otherMoves])
+                    if (curMove != otherMoves)
                     {
-                        isInDifferentMove = true;
-                        break;
+                        if (Player.State.GetCurrentStateID<int>() == MoveStalenessToState[otherMoves])
+                        {
+                            isInDifferentMove = true;
+                            break;
+                        }
                     }
                 }
             }
-        }
 
-        if (Player.State.GetCurrentStateID<int>() == MoveStalenessToState[curMove])
-        {
-            if (!IncrementsDuringState[curMove])
+            if (Player.State.GetCurrentStateID<int>() == MoveStalenessToState[curMove])
             {
-                if (!JustStaled[curMove])
+                if (!IncrementsDuringState[curMove])
+                {
+                    if (!JustStaled[curMove])
+                    {
+                        MoveStalenessTimer[curMove] = 0.0f;
+                        MoveStaleness[curMove] += (1 * StalenessMultiplier);
+                        JustStaled[curMove] = true;
+
+                        if (MoveStaleness[curMove] < RequiredForFresh)
+                        {
+                            if (isComboActive)
+                            {
+                                float Divider = (MoveStaleness[curMove] - 1);
+                                if (Divider < 1)
+                                    Divider = 1;
+
+                                GlobalVariables.PhantomRushIncreaseQueue += PhantomRushIncrease / Divider;
+                                GlobalVariables.RankPointsIncrease += MovePointsIncrease[curMove] / Divider;
+                            }
+                        }
+                        else
+                        {
+                            if (isComboActive)
+                                GlobalVariables.PhantomRushDecreaseQueue += PhantomRushDecrease * (MoveStaleness[curMove] - 1);
+                        }
+                    }
+
+                }
+                else
                 {
                     MoveStalenessTimer[curMove] = 0.0f;
-                    MoveStaleness[curMove] += (1 * StalenessMultiplier);
-                    JustStaled[curMove] = true;
+                    MoveStaleness[curMove] += (DeltaTime * StalenessMultiplier);
 
                     if (MoveStaleness[curMove] < RequiredForFresh)
                     {
@@ -187,93 +251,59 @@ Code "Move Staleness" by "thej01" in "thej01's codes/Gameplay" does "Spamming th
                             float Divider = (MoveStaleness[curMove] - 1);
                             if (Divider < 1)
                                 Divider = 1;
-
-                            GlobalVariables.PhantomRushIncreaseQueue += PhantomRushIncrease / Divider;
-                            GlobalVariables.RankPointsIncrease += MovePointsIncrease[curMove] / Divider;
+                                
+                            GlobalVariables.PhantomRushIncreaseQueue += (PhantomRushIncrease / Divider) * DeltaTime;
+                            GlobalVariables.RankPointsIncrease += (MovePointsIncrease[curMove] / Divider) * DeltaTime;
                         }
                     }
                     else
                     {
                         if (isComboActive)
-                            GlobalVariables.PhantomRushDecreaseQueue += PhantomRushDecrease * (MoveStaleness[curMove] - 1);
+                            GlobalVariables.PhantomRushDecreaseQueue += (PhantomRushDecrease * (MoveStaleness[curMove] - 1)) * DeltaTime;
                     }
                 }
 
+                if (MoveStaleness[curMove] > (MaxStaleness + 1))
+                    MoveStaleness[curMove] = MaxStaleness + 1;
+            }
+            else if (isInDifferentMove)
+            {
+                if (!JustUnStaled[curMove])
+                {
+                    MoveStalenessTimer[curMove] = 0.0f;
+                    JustUnStaled[curMove] = true;
+                    MoveStaleness[curMove] -= 0.5f * UnStalenessMultiplier;
+                }
             }
             else
             {
-                MoveStalenessTimer[curMove] = 0.0f;
-                MoveStaleness[curMove] += (DeltaTime * StalenessMultiplier);
-
-                if (MoveStaleness[curMove] < RequiredForFresh)
+                MoveStalenessTimer[curMove] += (DeltaTime * UnStalenessTimerMultiplier);
+                if (MoveStalenessTimer[curMove] >= 10.0f)
                 {
-                    if (isComboActive)
-                    {
-                        float Divider = (MoveStaleness[curMove] - 1);
-                        if (Divider < 1)
-                            Divider = 1;
-                            
-                        GlobalVariables.PhantomRushIncreaseQueue += (PhantomRushIncrease / Divider) * DeltaTime;
-                        GlobalVariables.RankPointsIncrease += (MovePointsIncrease[curMove] / Divider) * DeltaTime;
-                    }
+                    MoveStalenessTimer[curMove] = 0.0f;
+                    MoveStaleness[curMove] -= 1f * UnStalenessMultiplier;
                 }
-                else
-                {
-                    if (isComboActive)
-                        GlobalVariables.PhantomRushDecreaseQueue += (PhantomRushDecrease * (MoveStaleness[curMove] - 1)) * DeltaTime;
-                }
+                JustStaled[curMove] = false;
+                JustUnStaled[curMove] = false;
             }
 
-            if (MoveStaleness[curMove] > (MaxStaleness + 1))
-                MoveStaleness[curMove] = MaxStaleness + 1;
-        }
-        else if (isInDifferentMove)
-        {
-            if (!JustUnStaled[curMove])
+            if (MoveStaleness[curMove] <= 0f)
+                MoveStaleness[curMove] = 0f;
+
+            if (SonicParametersInfo.pData == null)
+                return;
+
+            // modify damage
+            if (Player.State.GetCurrentStateID<int>() == MoveStalenessToState[curMove])
             {
-                MoveStalenessTimer[curMove] = 0.0f;
-                JustUnStaled[curMove] = true;
-                MoveStaleness[curMove] -= 0.5f * UnStalenessMultiplier;
+                resultDamageMin = resultDamageMin / CapStaleness(MoveStaleness[curMove]);
+                resultDamageMax = resultDamageMax / CapStaleness(MoveStaleness[curMove]);
+
+                RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.common.offensive.pointMin, (byte)(resultDamageMin * damageMultiplierToUse));
+                RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.common.offensive.pointMax, (byte)(resultDamageMax * damageMultiplierToUse));
+
+                damageSet = true;
             }
-        }
-        else
-        {
-            MoveStalenessTimer[curMove] += (DeltaTime * UnStalenessTimerMultiplier);
-            if (MoveStalenessTimer[curMove] >= 10.0f)
-            {
-                MoveStalenessTimer[curMove] = 0.0f;
-                MoveStaleness[curMove] -= 1f * UnStalenessMultiplier;
-            }
-            JustStaled[curMove] = false;
-            JustUnStaled[curMove] = false;
-        }
-
-        if (MoveStaleness[curMove] <= 0f)
-            MoveStaleness[curMove] = 0f;
-
-        if (SonicParametersInfo.pData == null)
-            return;
-
-        // modify damage
-        if (Player.State.GetCurrentStateID<int>() == MoveStalenessToState[curMove])
-        {
-            float resultDamageMin = DamageMin;
-            float resultDamageMax = DamageMax;
-            if (isSuper)
-            {
-                resultDamageMin *= SSDamageMultiplier;
-                resultDamageMax *= SSDamageMultiplier;
-            }
-            resultDamageMin += extraDamageFromCombo;
-            resultDamageMax += extraDamageFromCombo;
-
-            resultDamageMin = resultDamageMin / CapStaleness(MoveStaleness[curMove]);
-            resultDamageMax = resultDamageMax / CapStaleness(MoveStaleness[curMove]);
-
-            RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.common.offensive.pointMin, (byte)(resultDamageMin * damageMultiplierToUse));
-            RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.common.offensive.pointMax, (byte)(resultDamageMax * damageMultiplierToUse));
-
-            damageSet = true;
         }
     }
 
@@ -282,7 +312,7 @@ Code "Move Staleness" by "thej01" in "thej01's codes/Gameplay" does "Spamming th
 
     if (!damageSet)
     {
-        RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.common.offensive.pointMin, (byte)(DamageMin * damageMultiplierToUse));
-        RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.common.offensive.pointMax, (byte)(DamageMax * damageMultiplierToUse));
+        RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.common.offensive.pointMin, (byte)(resultDamageMin * damageMultiplierToUse));
+        RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.common.offensive.pointMax, (byte)(resultDamageMax * damageMultiplierToUse));
     }
 }

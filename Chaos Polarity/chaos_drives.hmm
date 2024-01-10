@@ -30,10 +30,16 @@ Code "Chaos Drives" by "thej01"
 
     static Drives.Drive Init_Drive(string Name = "")
     {
-        string LoadResult = "";
-        // here we pray to god that we find the ini file succesfully or we are fucked
 
-        LoadResult = INIHelpers.LoadINI(GlobalVariables.ModName, @"\\properties\\" + GlobalVariables.CurrentDifficulty + "\\drives.ini");
+        PolarityAPI.Paths.PathData PropertyData = new PolarityAPI.Paths.PathData();
+
+        PropertyData = PolarityAPI.Paths.Get_PathData_From_Difficulty("drives", GlobalVariables.CurrentDifficulty);
+
+        string LoadResult = "";
+
+        LoadResult = INIHelpers.LoadINI(PropertyData.ModName, PropertyData.MainPath + GlobalVariables.CurrentDifficulty + "\\drives.ini");
+
+        // here we pray to god that we find the ini file succesfully or we are fucked
 
         Drives.Drive tmp;
 
@@ -47,7 +53,9 @@ Code "Chaos Drives" by "thej01"
         tmp.PhantomRushGain = INIHelpers.Parse.Float(Name, "PhantomRushGain");
         tmp.HitstopInSeconds = INIHelpers.Parse.Float(Name, "HitstopInSeconds");
         
-        LoadResult = INIHelpers.LoadINI(GlobalVariables.ModName, @"\\properties\\" + GlobalVariables.CurrentDifficulty + "\\unlocks.ini");
+        PropertyData = PolarityAPI.Paths.Get_PathData_From_Difficulty("unlocks", GlobalVariables.CurrentDifficulty);
+
+        LoadResult = INIHelpers.LoadINI(PropertyData.ModName, PropertyData.MainPath + GlobalVariables.CurrentDifficulty + "\\unlocks.ini");
 
         tmp.Unlockable = Unlocks.Init_Unlockable_Requirements(Name);
 
@@ -56,18 +64,19 @@ Code "Chaos Drives" by "thej01"
 
     static void Init_Difficulty()
     {
+        PolarityAPI.Paths.PathData PropertyData = new PolarityAPI.Paths.PathData();
+
+        PropertyData = PolarityAPI.Paths.Get_PathData_From_Difficulty("general", GlobalVariables.CurrentDifficulty);
+
         string LoadResult = "";
 
-        LoadResult = INIHelpers.LoadINI(GlobalVariables.ModName, @"\\properties\\" + GlobalVariables.CurrentDifficulty + "\\general.ini");
+        LoadResult = INIHelpers.LoadINI(PropertyData.ModName, PropertyData.MainPath + GlobalVariables.CurrentDifficulty + "\\general.ini");
 
         if (LoadResult == "ModNotFound" || LoadResult == "ININotFound")
             return;
 
         DefenseMin = INIHelpers.Parse.Float("Stats", "DefenseMin");
         DefenseMax = INIHelpers.Parse.Float("Stats", "DefenseMax");
-
-        if (LoadResult == "ININotFound")
-            return;
 
         Drives.PosDrive = Init_Drive("PosDrive");
         Drives.NegDrive = Init_Drive("NegDrive");

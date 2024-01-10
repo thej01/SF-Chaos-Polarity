@@ -14,6 +14,7 @@ Code "Spin Slice" by "thej01" in "thej01's codes/Gameplay" does "Press jump duri
     #lib "GlobalVariables"
     #lib "INIHelpers"
     #lib "Unlocks"
+    #lib "PolarityAPI"
 
     #load "System.Numerics.dll"
 
@@ -79,8 +80,13 @@ Code "Spin Slice" by "thej01" in "thej01's codes/Gameplay" does "Press jump duri
 
     static void Init_Difficulty()
     {
+        PolarityAPI.Paths.PathData PropertyData = new PolarityAPI.Paths.PathData();
+
+        PropertyData = PolarityAPI.Paths.Get_PathData_From_Difficulty("moves", GlobalVariables.CurrentDifficulty);
+
         string LoadResult = "";
-        LoadResult = INIHelpers.LoadINI(GlobalVariables.ModName, @"\\properties\\" + GlobalVariables.CurrentDifficulty + "\\moves.ini");
+
+        LoadResult = INIHelpers.LoadINI(PropertyData.ModName, PropertyData.MainPath + GlobalVariables.CurrentDifficulty + "\\moves.ini");
 
         if (LoadResult == "ModNotFound" || LoadResult == "ININotFound")
             return;

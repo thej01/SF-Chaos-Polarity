@@ -1,5 +1,4 @@
-// i would NOT recommend using any of these librarys for your own mod (except for hitstop and physicshelpers mayber)
-
+// i would NOT recommend using any of these librarys below for your own mod (except for hitstop and physicshelpers mayber)
 Library "PhysicsHelpers" by "thej01"
 //
     #lib "VectorHelpers"
@@ -67,7 +66,7 @@ Library "INIHelpers" by "thej01"
     using System.Collections.Generic;
 
     public Dictionary<string, Dictionary<string, string>> LoadedINI = new();
-    public string ModName = null;
+    public string ModID = null;
     public string INIPath = null;
     public string ININame = null;
 
@@ -85,36 +84,28 @@ Library "INIHelpers" by "thej01"
     /// <summary>
     /// Loads an ini file. This is required to use any other method.
     /// </summary>
-    /// <param name="SetModName"> Make this the same as your mod name display in HMM.</param>
+    /// <param name="SetModID"> Make this the same as your ModID.</param>
     /// <param name="SetININame"> INI file name.</param>
     /// <returns> 
     /// a string that determines the result of loading.
     /// None = No issues
     /// ModNotFound = Couldnt find mod, INI load failed. (incorrect mod name?)
-    /// MoreThanOneMod = There was more than one mod with that name, we loaded mod 0's INI.
     /// ININotFound = INI file couldnt be found. INI load failed.
-    public static string LoadINI(string SetModName = "", string SetININame = "")
+    public static string LoadINI(string SetModID = "", string SetININame = "")
     {
-        ModName = SetModName;
+        ModID = SetModID;
         ININame = SetININame;
-        var modsQuery = HMM.FindModsByName(ModName);
+        HMM.Mod mod = HMM.GetModByID(ModID);
         string ReturnValue = "None";
 
         // see if we found the mod folder
-		if (modsQuery.Count <= 0)
+		if (mod == null)
         {
-            INIHelpers.INILog("Mod called: " + SetModName + " doesn't exist.", ColorRed);
+            INIHelpers.INILog("ModID: " + SetModID + " doesn't exist.", ColorRed);
             return "ModNotFound";
         }
         
-		INIPath = System.IO.Path.Combine(modsQuery[0].Path, ININame.Substring(2));
-
-		// let the console know if there are for some reason more than 1 mod with the same name?!
-		if (modsQuery.Count > 1)
-        {
-            INIHelpers.INILog("Several Mods with name: " + SetModName + ". Defaulting to Mod 0's config.", ColorYellow);
-            ReturnValue = "SeveralMods";
-        }
+		INIPath = System.IO.Path.Combine(mod.Path, ININame.Substring(2));
 
 		// make sure the ini file actually exists
 		if (!File.Exists(INIPath))
@@ -229,7 +220,6 @@ Library "GlobalVariables" by "thej01"
     public static bool JustGotPerfectParry = false;
     public static bool JustGotParry = false;
 
-    public const string ModName = "Chaos Polarity";
     public static string ForceDifficultySetting = "none";
     public static string CurrentDifficulty = "Easy";
     public static string CurrentLanguage = "en";
@@ -243,6 +233,174 @@ Library "GlobalVariables" by "thej01"
     public static float PhantomRushGainQueue = 0;
     public static float RankPointsIncrease = 0;
     public static float HitstopToUse = 0;
+//
+
+Library "PolarityAPI" by "thej01"
+//
+
+    private const ConsoleColor ColorGray = ConsoleColor.Gray;
+	private const ConsoleColor ColorYellow = ConsoleColor.Yellow;
+	private const ConsoleColor ColorRed = ConsoleColor.Red;
+
+    private static void APILog(string text = "msg not found", ConsoleColor color = ColorGray)
+    {
+        Console.ForegroundColor = color;
+        Console.WriteLine("PolarityAPI: " + text);
+        Console.ForegroundColor =  ColorGray;
+    }
+
+    // file paths
+
+    public static class Paths
+    {
+
+        public class PathData
+        {
+            public string ModName = "thej01_ChaosPolarity";
+            public string MainPath = @"\\properties\\";
+        }
+
+        public class PathDataLang : PathData
+        {
+            public PathDataLang()
+            {
+                MainPath = @"\\lang\\";
+            }
+        }
+
+        public class PathDifficulty
+        {
+            public PathData drives = new PathData();
+            public PathData general = new PathData();
+            public PathData moves = new PathData();
+            public PathData ranks = new PathData();
+            public PathData unlocks = new PathData();
+        }
+
+        public class PathLang
+        {
+            public PathDataLang bosses = new PathDataLang();
+            public PathDataLang ranks = new PathDataLang();
+        }
+
+        public static PathData Get_PathData_From_Difficulty(string ININame = "", string Difficulty = "")
+        {
+
+            // this is stupid
+
+            PolarityAPI.Paths.PathDifficulty path;
+
+            switch (Difficulty.ToLower())
+            {
+                case "easy":
+                    path = PolarityAPI.Paths.Easy;
+                    break;
+
+                case "normal":
+                    path = PolarityAPI.Paths.Normal;
+                    break;
+
+                case "hard":
+                    path = PolarityAPI.Paths.Hard;
+                    break;
+                    
+                case "extreme":
+                    path = PolarityAPI.Paths.Extreme;
+                    break;
+
+                default:
+                    path = PolarityAPI.Paths.Easy;
+                    APILog("Couldn't find difficulty path: \"" + Difficulty + "\"");
+                    break;
+            }
+
+            switch (ININame.ToLower())
+            {
+                case "drives":
+                    return path.drives;
+                    break;
+
+                case "general":
+                    return path.general;
+                    break;
+
+                case "moves":
+                    return path.moves;
+                    break;
+
+                case "ranks":
+                    return path.ranks;
+                    break;
+
+                case "unlocks":
+                    return path.unlocks;
+                    break;
+
+                default:
+                    return path.general;
+                    APILog("Couldn't find PathData: \"" + ININame + "\"");
+                    break;
+            }
+
+        }
+
+        public static PathDataLang Get_PathData_From_Lang(string ININame = "", string Lang = "")
+        {
+            PolarityAPI.Paths.PathLang path;
+
+            switch (Lang.ToLower())
+            {
+                case "en":
+                    path = PolarityAPI.Paths.EN;
+                    break;
+
+                case "es":
+                    path = PolarityAPI.Paths.ES;
+                    break;
+
+                case "pt":
+                    path = PolarityAPI.Paths.PT;
+                    break;
+                    
+                case "it":
+                    path = PolarityAPI.Paths.IT;
+                    break;
+
+                default:
+                    path = PolarityAPI.Paths.EN;
+                    APILog("Couldn't find lang path: \"" + Lang + "\"");
+                    break;
+            }  
+
+            switch (ININame.ToLower())
+            {
+                case "bosses":
+                    return path.bosses;
+                    break;
+
+                case "ranks":
+                    return path.ranks;
+                    break;
+
+                default:
+                    return path.bosses;
+                    APILog("Couldn't find INI: \"" + ININame + "\"");
+                    break;
+            }
+        }
+
+        public static PathData Global = new PathData();
+
+        public static PathDifficulty Easy = new PathDifficulty();
+        public static PathDifficulty Normal = new PathDifficulty();
+        public static PathDifficulty Hard = new PathDifficulty();
+        public static PathDifficulty Extreme = new PathDifficulty();
+
+        public static PathLang EN = new PathLang();
+        public static PathLang ES = new PathLang();
+        public static PathLang PT = new PathLang();
+        public static PathLang IT = new PathLang();
+    }
 //
 
 // this library contains all the data for unlocks, except for the drives.

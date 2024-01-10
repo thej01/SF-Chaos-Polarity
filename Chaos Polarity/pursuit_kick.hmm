@@ -6,13 +6,15 @@ Code "Pursuit Kick Restoration" by "thej01" in "thej01's codes/Gameplay/Restorat
     #lib "GlobalVariables"
     #lib "Unlocks"
 
+    using System.Collections.Generic;
+
     static int StateAmount = 12;
 
     static bool IsInitialised = false;
 
     static bool AllowInDodge = true;
 
-    static int[] AllowedStates = new int[StateAmount + 1];
+    static List<int> AllowedStates = new List<int>();
 //
 {
     if (Player.GetPlayerType() != Player.PlayerType.Sonic)
@@ -23,15 +25,24 @@ Code "Pursuit Kick Restoration" by "thej01" in "thej01's codes/Gameplay/Restorat
     
     if (!IsInitialised || GlobalVariables.UpdateForever)
     {
+        PolarityAPI.Paths.PathData PropertyData = new PolarityAPI.Paths.PathData();
+
+        PropertyData = PolarityAPI.Paths.Global;
+
         string LoadResult = "";
-        LoadResult = INIHelpers.LoadINI(GlobalVariables.ModName, @"\\properties\\global.ini");
+
+        LoadResult = INIHelpers.LoadINI(PropertyData.ModName, PropertyData.MainPath + "\\global.ini");
         IsInitialised = true;
 
         if (LoadResult == "ModNotFound" || LoadResult == "ININotFound")
             return;
 
+        StateAmount = (INIHelpers.Parse.Int("PursuitKick", "StateAmount"));
+
+        AllowedStates.Clear();
+
         for (int curState = 0; curState < (StateAmount + 1); ++curState)
-            AllowedStates[curState] = INIHelpers.Parse.Int("PursuitKick", "State" + curState.ToString());
+            AllowedStates.Add(INIHelpers.Parse.Int("PursuitKick", "State" + curState.ToString()));
 
         AllowInDodge = INIHelpers.Parse.Bool("PursuitKick", "AllowInDodge");
     }

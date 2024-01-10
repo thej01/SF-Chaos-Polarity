@@ -19,12 +19,15 @@ Code "Combo Ranks" by "thej01 && Helped with by Gordin Ramsay"
 
     #import "GOComponents"
     #import "PlayerVisuals"
+    
+    using System.Collections.Generic;
 
     static bool UpdateRank = false;
     static bool IsInitialised = false;
     static bool StartComboInitialised = false;
     static bool BossInitialised = false;
     static bool BossRingsInitialised = false;
+    static bool IsEnabled = true;
 
     static float Points = 0;
     static float RingIncreaseTimer = 0;
@@ -63,20 +66,29 @@ Code "Combo Ranks" by "thej01 && Helped with by Gordin Ramsay"
     static string ComboRankText = "";
     static string CombatRankText = "";
 
-    static string[] RankNames = new string[RankAmount + 1];
-    static string[] RankNamesSS = new string[RankAmount + 1];
-    static float[] RankPoints = new float[RankAmount + 1];
+    static List<string> RankNames = new List<string>();
+    static List<string> RankNamesSS = new List<string>();
+    static List<float> RankPoints = new List<float>();
 
     static void Init_Difficulty()
     {
+        PolarityAPI.Paths.PathData PropertyData = new PolarityAPI.Paths.PathData();
+
+        PropertyData = PolarityAPI.Paths.Get_PathData_From_Difficulty("ranks", GlobalVariables.CurrentDifficulty);
+
         string LoadResult = "";
-        LoadResult = INIHelpers.LoadINI(GlobalVariables.ModName, @"\\properties\\" + GlobalVariables.CurrentDifficulty + "\\ranks.ini");
+
+        LoadResult = INIHelpers.LoadINI(PropertyData.ModName, PropertyData.MainPath + GlobalVariables.CurrentDifficulty + "\\ranks.ini");
 
         if (LoadResult == "ModNotFound" || LoadResult == "ININotFound")
             return;
 
+        RankPoints.Clear();
+
+        RankAmount = INIHelpers.Parse.Int("Main", "RankAmount");
+
         for (int curRank = 0; curRank < (RankAmount + 1); ++curRank)
-            RankPoints[curRank] = INIHelpers.Parse.Float("Rank" + curRank.ToString(), "PointsNeeded");
+            RankPoints.Add(INIHelpers.Parse.Float("Rank" + curRank.ToString(), "PointsNeeded"));
 
         PointsSSMultiplier = INIHelpers.Parse.Float("Main", "PointsSSMultiplier");
 
@@ -87,7 +99,11 @@ Code "Combo Ranks" by "thej01 && Helped with by Gordin Ramsay"
 
         RingsPerRank = INIHelpers.Parse.Int("Main", "RingsPerRank");
 
-        LoadResult = INIHelpers.LoadINI(GlobalVariables.ModName, @"\\properties\\" + GlobalVariables.CurrentDifficulty + "\\general.ini");
+        IsEnabled = INIHelpers.Parse.Bool("Main", "Enabled");
+
+        PropertyData = PolarityAPI.Paths.Get_PathData_From_Difficulty("general", GlobalVariables.CurrentDifficulty);
+
+        LoadResult = INIHelpers.LoadINI(PropertyData.ModName, PropertyData.MainPath + GlobalVariables.CurrentDifficulty + "\\general.ini");
 
         if (LoadResult == "ININotFound")
             return;
@@ -110,18 +126,26 @@ Code "Combo Ranks" by "thej01 && Helped with by Gordin Ramsay"
 
     static void Init_Lang()
     {
+        PolarityAPI.Paths.PathDataLang PropertyData = new PolarityAPI.Paths.PathDataLang();
+
+        PropertyData = PolarityAPI.Paths.Get_PathData_From_Lang("ranks", GlobalVariables.CurrentLanguage);
+
         string LoadResult = "";
-        LoadResult = INIHelpers.LoadINI(GlobalVariables.ModName, @"\\lang\\" + GlobalVariables.CurrentLanguage + "\\ranks.ini");
+
+        LoadResult = INIHelpers.LoadINI(PropertyData.ModName, PropertyData.MainPath + GlobalVariables.CurrentLanguage + "\\ranks.ini");
 
         if (LoadResult == "ModNotFound" || LoadResult == "ININotFound")
             return;
+
+        RankNames.Clear();
+        RankNamesSS.Clear();
 
         for (int curRank = 0; curRank < (RankAmount + 1); ++curRank)
         {
             string rankNum = curRank.ToString();
 
-            RankNames[curRank] = INIHelpers.Parse.String("Rank" + rankNum, "Name");
-            RankNamesSS[curRank] = INIHelpers.Parse.String("Rank" + rankNum, "NameSS");
+            RankNames.Add(INIHelpers.Parse.String("Rank" + rankNum, "Name"));
+            RankNamesSS.Add(INIHelpers.Parse.String("Rank" + rankNum, "NameSS"));
         }
 
         ComboRankText = INIHelpers.Parse.String("Main", "ComboRankName");
@@ -172,6 +196,16 @@ Code "Combo Ranks" by "thej01 && Helped with by Gordin Ramsay"
 
     if (GlobalVariables.LangJustChanged)
         Init_Lang();
+
+    if (!IsEnabled)
+    {
+        if (Lua.GetState() != 0)
+            Lua.Call("ClearUserGuidUI");
+
+        LastObtainedRank = -1;
+        Points = 0;
+        UpdateRank = true;
+    }
 
     if (RankAmount < 0)
         return;
@@ -416,7 +450,7 @@ Code "Combo Ranks" by "thej01 && Helped with by Gordin Ramsay"
     if (ObtainedRank != LastObtainedRank)
         UpdateRank = true;
 
-    if (UpdateRank)
+    if (UpdateRank && IsEnabled)
     {
         bool isRankDown = LastObtainedRank > ObtainedRank;
 

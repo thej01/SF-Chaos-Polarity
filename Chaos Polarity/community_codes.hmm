@@ -69,14 +69,20 @@ Code "Stomp Barrage Restoration" by "KirbyKrew661 & modified by thej01"
     #lib "Sonic"
     #lib "GlobalVariables"
     #lib "INIHelpers"
+    #lib "PolarityAPI"
 
     static bool IsInitialised = false;
     static bool IsEnabled = true;
 
     static void Init_Difficulty()
     {
+        PolarityAPI.Paths.PathData PropertyData = new PolarityAPI.Paths.PathData();
+
+        PropertyData = PolarityAPI.Paths.Get_PathData_From_Difficulty("moves", GlobalVariables.CurrentDifficulty);
+
         string LoadResult = "";
-        LoadResult = INIHelpers.LoadINI(GlobalVariables.ModName, @"\\properties\\" + GlobalVariables.CurrentDifficulty + "\\moves.ini");
+
+        LoadResult = INIHelpers.LoadINI(PropertyData.ModName, PropertyData.MainPath + GlobalVariables.CurrentDifficulty + "\\moves.ini");
 
         if (LoadResult == "ModNotFound" || LoadResult == "ININotFound")
             return;

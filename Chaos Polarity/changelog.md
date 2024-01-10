@@ -1,3 +1,12 @@
+## v1.4 (Modception)
+- [Addition] - Modding API (Any incompatible mods can use this to make Chaos Polarity compatible, or just... make Properties/Localization mods!)
+- [Tweak] - Homing Shot now pulls in enemies
+- [Bugfix] - Fixed a bug where the 1234 combo as SS had an extra hit
+
+- The Modding API is still really new, so expect bugs.
+
+- Read about the Modding API here:
+
 ## v1.3 (Tweaks and fixes)
 - [Addition] - Added Italian localization by ShiboKing
 - [Amendment] - Brazillian Portuguese localization modified to match base game better

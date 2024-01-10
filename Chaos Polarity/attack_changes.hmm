@@ -6,9 +6,11 @@ Code "Move Changes" by "thej01"
     #lib "Reflection"
     #lib "INIHelpers"
     #lib "GlobalVariables"
+    #lib "PolarityAPI"
     #lib "Player"
 
     static bool IsInitialised = false;
+    static bool IsEnabled = true;
 
     static float DropKickDownwardVelocity = -30;
     static float DropKickForwardVelocity = 0;
@@ -57,6 +59,8 @@ Code "Move Changes" by "thej01"
     static float HomingShotWhiteoutBegin = 999f;
     static float HomingShotMaxSpeed = 50f;
     static float HomingShotSpanTimeSS = 0.01f;
+    static float HomingShotForwardVelocity = -10;
+    static float HomingShotUpwardVelocity = 5;
     static string HomingShotCamera = "CrossSlash";
     static int HomingShotNum = 8;
     static int HomingShotNumSS = 10;
@@ -81,11 +85,18 @@ Code "Move Changes" by "thej01"
 {
     static void Init_Difficulty()
     {
+        PolarityAPI.Paths.PathData PropertyData = new PolarityAPI.Paths.PathData();
+
+        PropertyData = PolarityAPI.Paths.Get_PathData_From_Difficulty("moves", GlobalVariables.CurrentDifficulty);
+
         string LoadResult = "";
-        LoadResult = INIHelpers.LoadINI(GlobalVariables.ModName, @"\\properties\\" + GlobalVariables.CurrentDifficulty + "\\moves.ini");
+
+        LoadResult = INIHelpers.LoadINI(PropertyData.ModName, PropertyData.MainPath + GlobalVariables.CurrentDifficulty + "\\moves.ini");
 
         if (LoadResult == "ModNotFound" || LoadResult == "ININotFound")
             return;
+
+        IsEnabled = INIHelpers.Parse.Bool("Main", "IsEnabled");
 
         Basic1ForwardKnockback = INIHelpers.Parse.Float("BasicCombo", "Basic1ForwardKnockback");
         Basic1DownwardKnockback = INIHelpers.Parse.Float("BasicCombo", "Basic1DownwardKnockback");
@@ -134,6 +145,8 @@ Code "Move Changes" by "thej01"
         HomingShotWhiteoutBegin = INIHelpers.Parse.Float("HomingShot", "WhiteoutBegin");
         HomingShotMaxSpeed = INIHelpers.Parse.Float("HomingShot", "ShotMaxSpeed");
         HomingShotSpanTimeSS = INIHelpers.Parse.Float("HomingShot", "SpanTimeSS");
+        HomingShotForwardVelocity = INIHelpers.Parse.Float("HomingShot", "ForwardKnockback");
+        HomingShotUpwardVelocity = INIHelpers.Parse.Float("HomingShot", "UpwardKnockback");
         HomingShotCamera = INIHelpers.Parse.String("HomingShot", "Camera");
         HomingShotNum = INIHelpers.Parse.Int("HomingShot", "ShotNum");
         HomingShotNumSS = INIHelpers.Parse.Int("HomingShot", "ShotNumSS");
@@ -167,6 +180,9 @@ Code "Move Changes" by "thej01"
         return;
 
     if (SonicParametersInfo.pData == null)
+        return;
+
+    if (!IsEnabled)
         return;
 
     bool isBoss = Player.State.GetStatePlugin("StatePluginBossBattle") != null;
@@ -295,7 +311,10 @@ Code "Move Changes" by "thej01"
     RFL_SET_PARAM(SonicParametersInfo, common.loopKickSet.superSonic2.loopEndSpeed, LoopEndSpeed);
     RFL_SET_PARAM(SonicParametersInfo, common.loopKickSet.superSonic2.loopTime, LoopTime);
 
-    // homing shot speed, camera, whiteout, and shot number
+    // homing shot speed, camera, whiteout, shot number, and z/y velocity
+
+    RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.homingShot.velocity.Z, HomingShotForwardVelocity);
+    RFL_SET_PARAM(SonicParametersInfo, common.commonPackage.attack.homingShot.velocity.Y, HomingShotUpwardVelocity);
 
     RFL_SET_PARAM(SonicParametersInfo, common.homingShotSet.sonic.chargeTime, HomingShotChargeTime);
     RFL_SET_PARAM(SonicParametersInfo, common.homingShotSet.sonic.launchWaitTime, HomingShotLaunchWaitTime);

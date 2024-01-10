@@ -12,9 +12,13 @@ Code "Unlocks" by "thej01"
 
     static void Init_Difficulty()
     {
+        PolarityAPI.Paths.PathData PropertyData = new PolarityAPI.Paths.PathData();
+
+        PropertyData = PolarityAPI.Paths.Get_PathData_From_Difficulty("unlocks", GlobalVariables.CurrentDifficulty);
+
         string LoadResult = "";
 
-        LoadResult = INIHelpers.LoadINI(GlobalVariables.ModName, @"\\properties\\" + GlobalVariables.CurrentDifficulty + "\\unlocks.ini");
+        LoadResult = INIHelpers.LoadINI(PropertyData.ModName, PropertyData.MainPath + GlobalVariables.CurrentDifficulty + "\\unlocks.ini");
 
         if (LoadResult == "ModNotFound" || LoadResult == "ININotFound")
             return;
