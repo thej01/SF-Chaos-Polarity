@@ -1,9 +1,9 @@
 Library "PolarityAPI" by "thej01"
 //
 
-    	private const ConsoleColor ColorGray = ConsoleColor.Gray;
-	private const ConsoleColor ColorYellow = ConsoleColor.Yellow;
-	private const ConsoleColor ColorRed = ConsoleColor.Red;
+    private const ConsoleColor ColorGray = ConsoleColor.Gray;
+    private const ConsoleColor ColorYellow = ConsoleColor.Yellow;
+    private const ConsoleColor ColorRed = ConsoleColor.Red;
 
     private static void APILog(string text = "msg not found", ConsoleColor color = ColorGray)
     {
