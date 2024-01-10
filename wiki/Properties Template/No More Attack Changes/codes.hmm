@@ -2,8 +2,8 @@ Library "PolarityAPI" by "thej01"
 //
 
     private const ConsoleColor ColorGray = ConsoleColor.Gray;
-	private const ConsoleColor ColorYellow = ConsoleColor.Yellow;
-	private const ConsoleColor ColorRed = ConsoleColor.Red;
+    private const ConsoleColor ColorYellow = ConsoleColor.Yellow;
+    private const ConsoleColor ColorRed = ConsoleColor.Red;
 
     private static void APILog(string text = "msg not found", ConsoleColor color = ColorGray)
     {
@@ -169,20 +169,20 @@ Library "PolarityAPI" by "thej01"
 
 Code "No more attack changes" by "thej01"
 //
-    #lib "HMM"
-    #lib "PolarityAPI"
+#lib "HMM"
+#lib "PolarityAPI"
 
-    // Get Chaos Polarity mod data
-    static HMM.Mod PolarityMod = HMM.GetModByID("thej01_ChaosPolarity");
+// Get Chaos Polarity mod data
+static HMM.Mod PolarityMod = HMM.GetModByID("thej01_ChaosPolarity");
 //
 {
-    // PolarityMod will be null if Chaos Polarity is not installed/enabled.
-    if (PolarityMod != null)
-    {
-        // Redirect moves.ini paths to this mod folder for each difficulty
-        PolarityAPI.Paths.Easy.moves.ModName = "thej01_no_more_attack_changes";
-        PolarityAPI.Paths.Normal.moves.ModName = "thej01_no_more_attack_changes";
-        PolarityAPI.Paths.Hard.moves.ModName = "thej01_no_more_attack_changes";
-        PolarityAPI.Paths.Extreme.moves.ModName = "thej01_no_more_attack_changes";
-    }
+// PolarityMod will be null if Chaos Polarity is not installed/enabled.
+if (PolarityMod != null)
+{
+  // Redirect moves.ini paths to this mod folder for each difficulty using this mods ModID
+  PolarityAPI.Paths.Easy.moves.ModName = "thej01_no_more_attack_changes";
+  PolarityAPI.Paths.Normal.moves.ModName = "thej01_no_more_attack_changes";
+  PolarityAPI.Paths.Hard.moves.ModName = "thej01_no_more_attack_changes";
+  PolarityAPI.Paths.Extreme.moves.ModName = "thej01_no_more_attack_changes";
+}
 }
