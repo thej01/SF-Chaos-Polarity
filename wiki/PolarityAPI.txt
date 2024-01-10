@@ -1,0 +1,167 @@
+Library "PolarityAPI" by "thej01"
+//
+
+    private const ConsoleColor ColorGray = ConsoleColor.Gray;
+	private const ConsoleColor ColorYellow = ConsoleColor.Yellow;
+	private const ConsoleColor ColorRed = ConsoleColor.Red;
+
+    private static void APILog(string text = "msg not found", ConsoleColor color = ColorGray)
+    {
+        Console.ForegroundColor = color;
+        Console.WriteLine("PolarityAPI: " + text);
+        Console.ForegroundColor =  ColorGray;
+    }
+
+    // file paths
+
+    public static class Paths
+    {
+
+        public class PathData
+        {
+            public string ModName = "thej01_ChaosPolarity";
+            public string MainPath = @"\\properties\\";
+        }
+
+        public class PathDataLang : PathData
+        {
+            public PathDataLang()
+            {
+                MainPath = @"\\lang\\";
+            }
+        }
+
+        public class PathDifficulty
+        {
+            public PathData drives = new PathData();
+            public PathData general = new PathData();
+            public PathData moves = new PathData();
+            public PathData ranks = new PathData();
+            public PathData unlocks = new PathData();
+        }
+
+        public class PathLang
+        {
+            public PathDataLang bosses = new PathDataLang();
+            public PathDataLang ranks = new PathDataLang();
+        }
+
+        public static PathData Get_PathData_From_Difficulty(string ININame = "", string Difficulty = "")
+        {
+
+            // this is stupid
+
+            PolarityAPI.Paths.PathDifficulty path;
+
+            switch (Difficulty.ToLower())
+            {
+                case "easy":
+                    path = PolarityAPI.Paths.Easy;
+                    break;
+
+                case "normal":
+                    path = PolarityAPI.Paths.Normal;
+                    break;
+
+                case "hard":
+                    path = PolarityAPI.Paths.Hard;
+                    break;
+                    
+                case "extreme":
+                    path = PolarityAPI.Paths.Extreme;
+                    break;
+
+                default:
+                    path = PolarityAPI.Paths.Easy;
+                    APILog("Couldn't find difficulty path: \"" + Difficulty + "\"");
+                    break;
+            }
+
+            switch (ININame.ToLower())
+            {
+                case "drives":
+                    return path.drives;
+                    break;
+
+                case "general":
+                    return path.general;
+                    break;
+
+                case "moves":
+                    return path.moves;
+                    break;
+
+                case "ranks":
+                    return path.ranks;
+                    break;
+
+                case "unlocks":
+                    return path.unlocks;
+                    break;
+
+                default:
+                    return path.general;
+                    APILog("Couldn't find PathData: \"" + ININame + "\"");
+                    break;
+            }
+
+        }
+
+        public static PathDataLang Get_PathData_From_Lang(string ININame = "", string Lang = "")
+        {
+            PolarityAPI.Paths.PathLang path;
+
+            switch (Lang.ToLower())
+            {
+                case "en":
+                    path = PolarityAPI.Paths.EN;
+                    break;
+
+                case "es":
+                    path = PolarityAPI.Paths.ES;
+                    break;
+
+                case "pt":
+                    path = PolarityAPI.Paths.PT;
+                    break;
+                    
+                case "it":
+                    path = PolarityAPI.Paths.IT;
+                    break;
+
+                default:
+                    path = PolarityAPI.Paths.EN;
+                    APILog("Couldn't find lang path: \"" + Lang + "\"");
+                    break;
+            }  
+
+            switch (ININame.ToLower())
+            {
+                case "bosses":
+                    return path.bosses;
+                    break;
+
+                case "ranks":
+                    return path.ranks;
+                    break;
+
+                default:
+                    return path.bosses;
+                    APILog("Couldn't find INI: \"" + ININame + "\"");
+                    break;
+            }
+        }
+
+        public static PathData Global = new PathData();
+
+        public static PathDifficulty Easy = new PathDifficulty();
+        public static PathDifficulty Normal = new PathDifficulty();
+        public static PathDifficulty Hard = new PathDifficulty();
+        public static PathDifficulty Extreme = new PathDifficulty();
+
+        public static PathLang EN = new PathLang();
+        public static PathLang ES = new PathLang();
+        public static PathLang PT = new PathLang();
+        public static PathLang IT = new PathLang();
+    }
+//
