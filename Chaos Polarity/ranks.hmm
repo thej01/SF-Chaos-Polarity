@@ -83,9 +83,9 @@ Code "Combo Ranks" by "thej01 && Helped with by Gordin Ramsay"
         if (LoadResult == "ModNotFound" || LoadResult == "ININotFound")
             return;
 
-        RankPoints.Clear();
-
         RankAmount = INIHelpers.Parse.Int("Main", "RankAmount");
+
+        RankPoints.Clear();
 
         for (int curRank = 0; curRank < (RankAmount + 1); ++curRank)
             RankPoints.Add(INIHelpers.Parse.Float("Rank" + curRank.ToString(), "PointsNeeded"));

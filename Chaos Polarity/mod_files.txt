@@ -37,4 +37,6 @@ add lang/pt/ranks.ini
 add lang/pt/bosses.ini
 add lang/it/ranks.ini
 add lang/it/bosses.ini
+add lang/ko/ranks.ini
+add lang/ko/bosses.ini
 add mod.ini

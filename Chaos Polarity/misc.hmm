@@ -98,6 +98,10 @@ Code "Global Updates" by "thej01"
             GlobalVariables.CurrentLanguage = "it";
             break;
 
+        case Converse.Language.Korean:
+            GlobalVariables.CurrentLanguage = "ko";
+            break;
+
         default:
             GlobalVariables.CurrentLanguage = "en";
             break;

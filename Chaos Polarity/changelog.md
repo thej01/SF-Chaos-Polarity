@@ -1,3 +1,7 @@
+## v1.5 (Korean Localization)
+- [Addition] - Added Korean localization by aquamelon
+- [Bugfix] - Fix RankAmount parsing error
+
 ## v1.4 (Modception)
 - [Addition] - Modding API (Any incompatible mods can use this to make Chaos Polarity compatible, or just... make Properties/Localization mods!)
 - [Tweak] - Homing Shot now pulls in enemies
