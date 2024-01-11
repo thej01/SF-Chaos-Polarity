@@ -2,8 +2,8 @@ Library "PolarityAPI" by "thej01"
 //
 
     private const ConsoleColor ColorGray = ConsoleColor.Gray;
-    private const ConsoleColor ColorYellow = ConsoleColor.Yellow;
-    private const ConsoleColor ColorRed = ConsoleColor.Red;
+	private const ConsoleColor ColorYellow = ConsoleColor.Yellow;
+	private const ConsoleColor ColorRed = ConsoleColor.Red;
 
     private static void APILog(string text = "msg not found", ConsoleColor color = ColorGray)
     {
@@ -129,6 +129,10 @@ Library "PolarityAPI" by "thej01"
                     path = PolarityAPI.Paths.IT;
                     break;
 
+                case "ko":
+                    path = PolarityAPI.Paths.KO;
+                    break;
+
                 default:
                     path = PolarityAPI.Paths.EN;
                     APILog("Couldn't find lang path: \"" + Lang + "\"");
@@ -163,5 +167,6 @@ Library "PolarityAPI" by "thej01"
         public static PathLang ES = new PathLang();
         public static PathLang PT = new PathLang();
         public static PathLang IT = new PathLang();
+        public static PathLang KO = new PathLang();
     }
 //
