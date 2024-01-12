@@ -1,3 +1,6 @@
+## v1.51 (Hotfix)
+- [Bugfix] - Fixed localization initialization error for ranks
+
 ## v1.5 (Korean Localization)
 - [Addition] - Added Korean localization by aquamelon
 - [Bugfix] - Fix RankAmount parsing error

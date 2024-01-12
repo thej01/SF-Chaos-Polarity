@@ -84,7 +84,6 @@ Code "Combo Ranks" by "thej01 && Helped with by Gordin Ramsay"
             return;
 
         RankAmount = INIHelpers.Parse.Int("Main", "RankAmount");
-
         RankPoints.Clear();
 
         for (int curRank = 0; curRank < (RankAmount + 1); ++curRank)
@@ -122,6 +121,8 @@ Code "Combo Ranks" by "thej01 && Helped with by Gordin Ramsay"
         PerfectParryWindow = INIHelpers.Parse.Float("PerfectParryReworked", "Window");
 
         BossRingCount = INIHelpers.Parse.Int("BossFight", "SSStartRings");
+
+        Init_Lang();
     }
 
     static void Init_Lang()
@@ -143,7 +144,7 @@ Code "Combo Ranks" by "thej01 && Helped with by Gordin Ramsay"
         for (int curRank = 0; curRank < (RankAmount + 1); ++curRank)
         {
             string rankNum = curRank.ToString();
-
+            
             RankNames.Add(INIHelpers.Parse.String("Rank" + rankNum, "Name"));
             RankNamesSS.Add(INIHelpers.Parse.String("Rank" + rankNum, "NameSS"));
         }
@@ -187,7 +188,6 @@ Code "Combo Ranks" by "thej01 && Helped with by Gordin Ramsay"
     if (!IsInitialised || GlobalVariables.UpdateForever)
     {
         IsInitialised = true;
-        Init_Lang();
         Init_Difficulty();
     }
 
