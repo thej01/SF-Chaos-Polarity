@@ -133,6 +133,10 @@ Library "PolarityAPI" by "thej01"
                     path = PolarityAPI.Paths.KO;
                     break;
 
+                case "de":
+                    path = PolarityAPI.Paths.DE;
+                    break;
+
                 default:
                     path = PolarityAPI.Paths.EN;
                     APILog("Couldn't find lang path: \"" + Lang + "\"");
@@ -168,6 +172,7 @@ Library "PolarityAPI" by "thej01"
         public static PathLang PT = new PathLang();
         public static PathLang IT = new PathLang();
         public static PathLang KO = new PathLang();
+        public static PathLang DE = new PathLang();
     }
 //
 
