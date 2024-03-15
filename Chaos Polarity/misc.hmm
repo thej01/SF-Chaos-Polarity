@@ -102,6 +102,10 @@ Code "Global Updates" by "thej01"
             GlobalVariables.CurrentLanguage = "ko";
             break;
 
+        case Converse.Language.German:
+            GlobalVariables.CurrentLanguage = "de";
+            break;
+
         default:
             GlobalVariables.CurrentLanguage = "en";
             break;

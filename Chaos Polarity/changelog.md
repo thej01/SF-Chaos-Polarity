@@ -1,3 +1,6 @@
+## v1.6 (German localization)
+- [Addition] - Added German localization by kebabified
+
 ## v1.51 (Hotfix)
 - [Bugfix] - Fixed localization initialization error for ranks
 
