@@ -229,21 +229,6 @@ Library "PolarityAPI" by "thej01"
     }
 //
 
-  Code "Remixed Ranks" by "thej01"
-  //
-      #lib "HMM"
-      #lib "PolarityAPI"
-
-      // Get Chaos Polarity mod data using the ModID for Chaos Polarity
-      static HMM.Mod PolarityMod = HMM.GetModByID("thej01_ChaosPolarity");
-  //
-  {
-      // PolarityMod will be null if Chaos Polarity is not installed/enabled.
-      if (PolarityMod != null)
-          // Redirect English ranks localization to this mod using the ModID
-          PolarityAPI.Paths.EN.ranks.ModName = "thej01_remixed_ranks";
-  }
-
 Patch "Chaos Polarity Text Override" by "thej01"
 //
     #lib "HMM"
