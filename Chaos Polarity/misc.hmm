@@ -528,11 +528,9 @@ Code "Text Replacements" by "thej01"
 //
     #lib "Converse"
     #lib "INIHelpers"
+    #lib "PolarityAPI"
 
     static bool IsInitialised = false;
-
-    static string MasterTrialObjective = "";
-    static string TheEndSS2Transformation = "";
 
     static string GetTooltip(string Category = "")
     {
@@ -559,9 +557,13 @@ Code "Text Replacements" by "thej01"
 
         if (LoadResult == "ModNotFound" || LoadResult == "ININotFound")
             return;
+
+        PolarityAPI.TextData.SS2TransformationText.text = GetTooltip("TheEndSS2Transformation");
         
-        MasterTrialObjective = GetTooltip("MasterTrialObjective");
-        TheEndSS2Transformation = GetTooltip("TheEndSS2Transformation");
+        PolarityAPI.TextData.MasterTrialObjective.text = GetTooltip("MasterTrialObjective");
+
+        PolarityAPI.TextData.SS2TransformationText.ApplyTextChanges();
+        PolarityAPI.TextData.MasterTrialObjective.ApplyTextChanges();
     }
 //
 {
@@ -573,7 +575,4 @@ Code "Text Replacements" by "thej01"
 
     if (GlobalVariables.LangJustChanged)
         Init_Lang();
-
-    Converse.Redirect("tu1000dlc_245", MasterTrialObjective);
-    Converse.Redirect("tu1000dlc_275", TheEndSS2Transformation);
 }
