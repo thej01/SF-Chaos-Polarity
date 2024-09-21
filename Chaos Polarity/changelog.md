@@ -1,3 +1,7 @@
+## v1.61 (No more text silliness)
+- [Addition] - PolarityAPI now allows you to disable certain text replacements
+- [Bugfix] - Text replacements no longer update every frame
+
 ## v1.6 (German localization)
 - [Addition] - Added German localization by kebabified
 
